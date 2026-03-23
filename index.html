@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<title>본색 — 숨겨둔 욕망을 마주하는 시간</title>
+<meta name="description" content="18개의 질문이 당신의 성적 취향을 알려줍니다. 본색 테스트."/>
+<meta property="og:title" content="본색 — 나의 숨겨진 욕망 유형은?"/>
+<meta property="og:description" content="18개의 질문. 읽는 순간 몸이 먼저 답합니다. 🔞"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body,#root{min-height:100vh;background:#050510}
+body{font-family:'Pretendard','Noto Sans KR',sans-serif;-webkit-font-smoothing:antialiased}
+input{font-family:inherit}
+button{font-family:inherit}
+@keyframes splashPulse{0%,100%{opacity:0.4;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}
+@keyframes splashFade{0%{opacity:1}80%{opacity:1}100%{opacity:0}}
+@keyframes lineGrow{0%{width:0}100%{width:60px}}
+@keyframes subtitleIn{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes phNameIn{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes phLineGrow{0%{width:0;opacity:0}100%{width:50px;opacity:1}}
+@keyframes phSubIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback}=React;
+
+/* ════════════════════════════════════════════════════════════════
+   SHARED DATA — 32 TYPES + ALGORITHMIC COMPATIBILITY
+   ════════════════════════════════════════════════════════════════ */
+
+const COMMON_Q=[
+  {scene:"밤 11시. 당신은 침대에 누워 있다.\n눈을 감으면 어떤 장면이 떠오르는가?",
+   a:["옆에 누운 연인이 이마에 입술을 대고,\n천천히 목으로 내려온다.\n익숙한 체온. 익숙한 향.",
+      "어딘지 모를 어두운 방.\n상대의 얼굴은 보이지 않는다.\n낯선 손이 당신의 허리를 잡는다."],
+   axis:0,phase:"warm",id:"Q1"},
+  {scene:"당신 앞에 두 개의 문이 있다.\n\n왼쪽 문 — 가장 사랑하는 사람이 촛불을 켜고 기다린다. 온종일 당신만 생각했다고 말한다.\n\n오른쪽 문 — 처음 보는 매력적인 사람이 당신의 이름도 묻지 않고 벽에 밀어붙인다.",
+   prompt:"심장이 더 빨라지는 문은?",a:["왼쪽 문","오른쪽 문"],axis:0,phase:"core",id:"Q2"},
+  {scene:"당신의 가장 은밀한 판타지를 떠올려보세요.\n그 장면에서 당신과 상대의 관계는?",
+   a:["서로를 깊이 아는 사이.\n이름을 부르고, 눈을 맞추고,\n\"사랑해\"라고 말할 수 있는 관계",
+      "서로에 대해 아무것도 모르는 사이.\n이름도, 내일도 없다.\n오직 지금 이 순간의 몸만 존재한다"],
+   axis:0,phase:"deep",id:"Q3"},
+  {scene:"상대가 당신의 귀에 속삭인다.\n\n\"오늘은 내가 정한다. 넌 가만히 있어.\"\n\n\"오늘 네 맘대로 해. 뭘 해도 좋아.\"",
+   prompt:"당신이 하고 싶은 말이 아니라,\n들었을 때 더 반응하는 말은?",
+   a:["첫 번째.\n내가 그 말을 하는 쪽이 흥분된다.","두 번째.\n그 말을 듣는 쪽이 흥분된다."],
+   axis:1,phase:"deep",id:"Q6"},
+  {scene:"둘 다 거의 절정에 가까워졌다.",prompt:"이 순간, 당신의 역할은?",
+   a:["내가 속도를 정한다.\n내가 멈추면 상대도 멈춰야 한다.\n타이밍은 내가 결정한다.",
+      "상대의 리듬에 맞추고 있다.\n상대가 \"아직\"이라고 하면, 기다린다.\n허락이 올 때까지."],
+   axis:1,phase:"core",id:"Q8"},
+  {scene:"두 가지 순간을 상상해보세요.\n\n순간 A — 상대가 옷을 벗는다. 조명 아래서 당신이 좋아하는 몸이 드러난다. 상대가 아무 말 없이 당신 쪽으로 걸어온다.\n\n순간 B — 어두운 방. 아무것도 보이지 않는다. 상대가 당신의 귀에 \"오늘 하루 종일 너 생각만 했어\"라고 속삭인다. 따뜻한 숨결이 목에 닿는다.",
+   prompt:"몸이 먼저 반응하는 건?",a:["순간 A","순간 B"],axis:2,phase:"core",id:"Q9"},
+  {scene:"전희도 분위기도 없다.\n갑자기, 지금, 바로.",prompt:"그래도 흥분될 수 있는 조건은?",
+   a:["상대의 몸이 내 취향이다.\n그것만으로 충분하다.","직전까지 깊은 대화를 나눴다.\n감정이 극한까지 올라와 있다."],
+   axis:2,phase:"core",id:"Q10"},
+  {scene:"평범한 수요일 오후 3시.\n일을 하고 있다. 아무 맥락도 없다.",prompt:"갑자기 성적인 생각이 떠오른 적이 있는가?",
+   a:["자주 있다. 이유 없이.\n회의 중에도, 지하철에서도.\n갑자기 몸이 원한다.",
+      "거의 없다.\n상대가 터치하거나, 무언가를 보거나,\n분위기가 만들어져야 올라온다."],
+   axis:3,phase:"core",id:"Q12"},
+  {scene:"연인이 갑자기 당신의 허리를 뒤에서 안고\n\"지금 하고 싶다\"고 속삭인다.\n당신은 지금 다른 일을 하고 있었다.",prompt:"몸의 반응은?",
+   a:["사실 나도 하고 싶었다.\n바로 돌아선다.",
+      "지금은 아닌데...\n하지만 허리를 감싼 팔의 온기가 느껴진다.\n조금씩. 천천히."],
+   axis:3,phase:"core",id:"Q14"},
+  {scene:"절정 직전이다.\n숨이 가빠지고, 온몸에 힘이 들어간다.",prompt:"이 순간, 당신의 감각은 어디에 있는가?",
+   a:["한 곳.\n모든 신경이 한 지점으로 모인다.\n그곳에서 폭발이 시작된다.",
+      "어디서 시작됐는지 모르겠다.\n온몸이 동시에 울린다.\n파도처럼 퍼진다."],
+   axis:4,phase:"core",id:"Q15"},
+  {scene:"두 종류의 밤을 상상해보세요.\n\n밤 A — 한 가지 체위. 처음부터 끝까지 바꾸지 않는다. 대신 그 안에서 깊이, 속도, 강도를 극한까지 올린다.\n\n밤 B — 멈추지 않는다. 체위를 바꾸고, 장소를 옮기고, 쉬지 않고 이것저것 시도한다. 끝날 때쯤 온몸이 녹아있다.",
+   prompt:"끝나고 나서 더 만족스러운 밤은?",a:["밤 A","밤 B"],axis:4,phase:"core",id:"Q16"},
+  {scene:"당신에게 한 시간이 주어졌다.\n상대는 당신이 원하는 건 뭐든 해주겠다고 했다.",prompt:"어떤 경험을 고르겠는가?",
+   a:["한 가지. 오직 한 가지만.\n한 시간 내내 오럴만.\n또는 한 시간 내내 한 부위만. 끝까지.",
+      "전부.\n눈을 가리고, 귓속말을 하고,\n얼음을 굴리고, 깃털로 쓸고.\n온몸의 모든 감각을 동시에."],
+   axis:4,phase:"deep",id:"Q17"},
+  {scene:"지금 막 끝났다.\n숨을 고르고 있다. 천장을 바라본다.",prompt:"내일까지 남아있을 건?",
+   a:["몸이 기억한다.\n근육의 떨림, 피부의 감각,\n쾌감의 잔상이 물리적으로 남아있다.",
+      "마음이 기억한다.\n상대의 눈빛, 속삭임,\n연결된 느낌이 감정으로 남아있다."],
+   axis:2,phase:"last",id:"Q18"},
+];
+
+const SWAP={
+  M:{
+    Q5:{scene:"섹스 중이다.\n당신이 상대의 머리카락을 움켜잡았다.\n상대의 목이 젖혀지고, 입술이 벌어진다.\n상대의 눈이 당신을 올려다본다.",
+      prompt:"이 순간, 당신은?",
+      a:["더 세게 잡는다.\n상대의 고개를 돌려 입술을 가져간다.\n내가 이끈다.","손을 놓는다.\n상대가 돌아서서 당신을 밀어 눕힌다.\n이번엔 상대 차례."],
+      axis:1,phase:"core",id:"Q5"},
+    Q4:{scene:"늦은 밤, 혼자 영상을 보고 있다.",prompt:"당신의 손이 멈추는 건\n어떤 장면에서인가?",
+      a:["두 사람이 눈을 맞추며, 속삭이며,\n진짜 느끼고 있다는 게 보이는 장면","현실에서는 절대 안 할 상황.\n금기적이고, 자극적이고,\n보면 안 될 것 같은 장면"],axis:0,phase:"core",id:"Q4"},
+    Q7:{scene:"침대 옆 서랍에 부드러운 끈이 있다.\n당신은 그것을 꺼내 들었다.",prompt:"지금 묶이는 건 누구의 손목인가?",
+      a:["상대의 손목.\n내가 천천히 감고 있다.\n상대의 눈이 커진다.","나의 손목.\n상대가 단단히 감고 있다.\n나는 움직일 수 없다."],axis:1,phase:"deep",id:"Q7"},
+    Q11:{scene:"포르노를 보고 있다.",prompt:"가장 강하게 반응하는 순간은?",
+      a:["카메라가 가까이 간다.\n신체 부위가 클로즈업된다.\n직접적인 행위가 보인다.","두 사람 사이에 스토리가 있다.\n눈빛, 긴장감,\n\"하면 안 되는데\" 같은 맥락이 있다."],axis:2,phase:"deep",id:"Q11"},
+    Q13:{scene:"혼자다. 아무도 없다.",prompt:"손이 아래로 내려가는 건\n보통 언제인가?",
+      a:["이유 없다. 몸이 원할 때.\n특별한 자극 없이도 시작한다.","무언가를 봤을 때.\n영상, 사진, 기억.\n외부 자극이 있어야 시작된다."],axis:3,phase:"deep",id:"Q13"},
+  },
+  F:{
+    Q5:{scene:"섹스 중이다.\n상대가 갑자기 당신의 머리카락을\n뒤에서 세게 움켜잡았다.\n목이 뒤로 젖혀진다.\n상대의 숨소리가 귓가에 닿는다.",
+      prompt:"이 순간, 당신의 몸은?",
+      a:["상대의 손목을 잡고, 돌아서서,\n내가 상대를 눕힌다.\n이번엔 내 차례.","온몸에 전류가 흐른다.\n목이 젖혀진 채로 눈을 감는다.\n더."],
+      axis:1,phase:"core",id:"Q5"},
+    Q4:{scene:"늦은 밤, 혼자 야한 소설을 읽고 있다.",prompt:"다음 페이지가 궁금해서\n멈출 수 없는 건 어떤 이야기인가?",
+      a:["두 사람의 감정이 천천히 쌓이다가,\n참을 수 없는 순간에 터지는 이야기","상상도 못 한 설정.\n금기적이고 위험한데,\n읽는 내내 심장이 뛰는 이야기"],axis:0,phase:"core",id:"Q4"},
+    Q7:{scene:"상대가 당신 위에 있다.\n양 손목을 한 손으로 잡고 머리 위로 올려 눌렀다.\n움직일 수 없다.\n상대의 눈이 당신을 내려다보고 있다.",prompt:"이 순간, 당신은?",
+      a:["손을 빼낸다.\n상대를 밀어 뒤집고,\n이번엔 내가 위에서 상대의 손목을 잡는다.","잡힌 채로 상대의 눈을 올려본다.\n입술이 벌어진다.\n힘을 뺀다."],axis:1,phase:"deep",id:"Q7"},
+    Q11:{scene:"지금까지 가장 강하게 흥분했던 순간을\n떠올려보세요.\n아무도 모르는, 당신만의 기억.",prompt:"그 순간을 촉발한 건?",
+      a:["상대의 몸, 표정, 행위 —\n무언가를 보거나 느꼈을 때","상대와의 감정, 분위기, 말 —\n마음이 먼저 반응했을 때"],axis:2,phase:"deep",id:"Q11"},
+    Q13:{scene:"혼자 있는 밤.",prompt:"성적인 상상이 떠오르는 건\n보통 어떤 경우인가?",
+      a:["갑자기. 아무 이유 없이.\n샤워 중에, 잠들기 전에,\n몸이 먼저 신호를 보낸다.","무언가를 접하고 나서.\n소설, 영상, 누군가의 향수 냄새, 옛 기억.\n트리거가 있다."],axis:3,phase:"deep",id:"Q13"},
+  },
+};
+
+function buildQ(g){
+  const sw=SWAP[g]||SWAP.M;
+  const order=["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11","Q12","Q13","Q14","Q15","Q16","Q17","Q18"];
+  const cMap={};COMMON_Q.forEach(q=>cMap[q.id]=q);
+  return order.map(id=>sw[id]||cMap[id]).filter(Boolean);
+}
+
+const AXIS_META=[{l:"친밀",r:"탐험",max:4},{l:"주도",r:"수용",max:4},{l:"신체",r:"감정",max:4},{l:"자발",r:"반응",max:3},{l:"집중",r:"확산",max:3}];
+
+/* ── 32 TYPES ── */
+const T32={
+IDPFN:{name:"프라이멀 헌터",emoji:"🔥",sub:"지배하고, 탐하고, 몰입하는 자",color:"#E84393",desc:"당신의 욕망은 본능에서 시작됩니다. 머리가 아니라 몸이 먼저 반응합니다. 사랑하는 사람의 몸에 강하게 끌리고, 섹스에서는 자연스럽게 주도합니다. 욕망이 예고 없이 치솟으며, 상대의 한 지점에 집중시켜 끝까지 밀어붙이는 몰입형.",kink:"강한 피지컬 리드 · 핀업 · 체위 고정 · 거친 전희 · 목 잡기",pop:6},
+IDPFW:{name:"볼케이노",emoji:"🌋",sub:"폭발적이고, 직접적이고, 온몸인 자",color:"#E17055",desc:"예고 없이 터지는 욕망. 한 부위가 아닌 상대의 몸 전체를 탐닉합니다. 머리카락부터 발끝까지, 가능한 모든 곳을 만지고 키스하고 느끼고 싶어합니다. 가장 열정적인 러버.",kink:"긴 격렬한 섹스 · 다양한 체위 · 전신 탐색 · 정열적 키스 · 사후 애무",pop:5},
+IDPRN:{name:"슬로우 버너",emoji:"🕯️",sub:"천천히, 깊이, 끝까지 태우는 자",color:"#FDCB6E",desc:"몸에서 시작되지만 급하지 않은 주도형. 상대의 신호에 반응하여 서서히 점화되며, 한번 켜지면 한 곳에 극도로 집중합니다. 가장 인내심 있는 주도형.",kink:"느린 에스컬레이션 · 지속적 자극 · 반응 읽기 · 끝까지 유지 · 사후 여운",pop:3},
+IDPRW:{name:"센슈얼 스톰",emoji:"⛈️",sub:"천천히 시작해서, 온몸을 휩쓰는 자",color:"#74B9FF",desc:"반응적 욕망이지만 일단 켜지면 주도적이고 확산적. 처음에는 서서히 올라오다가, 어느 순간 스위치가 켜지면 상대의 몸 전체를 격렬하게 탐색합니다.",kink:"갑작스러운 전환 · 강약 조절 · 전신 공략 · 예측 불가 리듬 · 폭풍 전야",pop:3},
+IDMFN:{name:"딥 커넥터",emoji:"🔗",sub:"감정으로 연결하고, 한 곳에 잠기는 자",color:"#0984E3",desc:"감정에서 욕망이 시작되지만 자발적이고 주도적. 사랑해라는 감정이 곧 성욕으로 직결되는 타입. 섹스와 사랑을 분리할 수 없는 타입.",kink:"아이 컨택트 · 언어적 교감 · 느린 침투 · 감정 몰입 · 깊은 키스",pop:4},
+IDMFW:{name:"센슈얼 가디언",emoji:"🛡️",sub:"지키고, 감싸고, 탐색하는 자",color:"#0984E3",desc:"감정적 연결이 전제되어야 주도할 수 있는 타입. 상대의 쾌감을 설계하는 데서 흥분하며, 온몸을 탐색하는 확산형입니다.",kink:"긴 전희 · 풀바디 마사지 · 상대 중심 오럴 · 귓속말 · 사후 포옹",pop:4},
+IDMRN:{name:"위스퍼러",emoji:"🤫",sub:"고요히 이끌고, 깊이 파고드는 자",color:"#636E72",desc:"가장 조용하지만 가장 깊은 주도형. 말보다 행동, 행동보다 호흡으로 소통합니다. 속삭임 한마디가 가장 강력한 무기.",kink:"호흡 리드 · 속삭임 · 느린 주도 · 극도의 집중 · 깊은 침묵",pop:2},
+IDMRW:{name:"소울 리더",emoji:"✨",sub:"감정으로 점화하고, 온몸으로 이끄는 자",color:"#FDCB6E",desc:"감정 기반 반응형이지만 일단 연결되면 주도적이고 확산적. 가장 로맨틱한 주도형.",kink:"전희로서의 대화 · 감정적 점화 · 전신 터치 · 분위기 설계 · 긴 여운",pop:3},
+ISPFN:{name:"이너 플레임",emoji:"🕯️",sub:"안에서 타오르고, 한 곳에서 녹는 자",color:"#E17055",desc:"친밀한 관계에서 상대에게 맡기되, 안에서는 강렬하게 타오르고 있습니다. 상대가 집중 자극을 줄 때 가장 강한 반응.",kink:"수동적 강렬함 · 내면의 불꽃 · 집중 자극 반응 · 자발적 수용 · 눈빛 교환",pop:3},
+ISPFW:{name:"센시티브 블룸",emoji:"🌸",sub:"온몸이 피어나는 자",color:"#FD79A8",desc:"자발적 욕망과 확산적 감각이 결합된 수용형. 상대의 리드 아래에서 온몸이 동시에 반응하며, 스스로도 놀랄 만큼 강한 신체 반응.",kink:"온몸 반응 · 전신 민감 · 풍부한 표현 · 상대 리드 선호 · 자발적 개방",pop:3},
+ISPRN:{name:"미러",emoji:"🪞",sub:"상대를 비추고, 한 곳에서 깊어지는 자",color:"#DFE6E9",desc:"상대의 에너지를 그대로 반사하는 타입. 상대가 강하면 강하게, 부드러우면 부드럽게 반응합니다.",kink:"에너지 동기화 · 상대 반영 · 반응적 몰입 · 체온 교감 · 리듬 맞추기",pop:2},
+ISPRW:{name:"드리머",emoji:"💭",sub:"맡기고, 느끼고, 온몸으로 떠다니는 자",color:"#A29BFE",desc:"친밀한 관계에서 상대에게 완전히 맡기며, 몽환적인 상태에 빠지는 경향. 가장 수용적이고 유연한 타입.",kink:"완전한 맡김 · 몽환적 상태 · 전신 파동 · 느린 빌드업 · 꿈결 같은 섹스",pop:2},
+ISMFN:{name:"딥 다이버",emoji:"🫧",sub:"감정의 바닥까지 잠수하는 자",color:"#00CEC9",desc:"감정에서 시작되지만 자발적 욕망이 있는 수용형. 상대에게 맡기되, 스스로 원할 때 먼저 신호를 보냅니다.",kink:"감정적 자발성 · 깊은 몰입 · 수용적 주도 · 한 부위 집중 · 감정의 깊이",pop:3},
+ISMFW:{name:"오션 커런트",emoji:"🌀",sub:"감정의 흐름에 실려, 온몸으로 퍼지는 자",color:"#00B894",desc:"사랑의 감정이 곧 성욕으로 이어지며, 상대의 리드에 온몸으로 반응합니다. 자기가 원하는 것은 확실히 알고 있는 타입.",kink:"감정적 파동 · 전신 반응 · 적극적 수용 · 흐름 타기 · 자기 인식 있는 맡김",pop:3},
+ISMRN:{name:"사일런트 딥",emoji:"🕳️",sub:"고요하고, 깊고, 서서히 타는 자",color:"#00B894",desc:"겉으로 성적 관심이 적어 보이지만, 안전한 관계에서 천천히 욕망이 깨어납니다. 한번 열리면 누구보다 깊고 강렬합니다.",kink:"느린 전희 · 호흡 동기화 · 아이 컨택트 · 사후 교감 · 깊은 키스",pop:3},
+ISMRW:{name:"무드 리시버",emoji:"🌊",sub:"맡기고, 느끼고, 잠기는 자",color:"#6C5CE7",desc:"분위기에서 시작되는 욕망. 신뢰하는 상대에게 맡길 때 가장 깊은 쾌감에 도달합니다. 온몸에 퍼지는 파동형 감각을 선호합니다.",kink:"슬로우 빌드업 · 눈 가리기 · 속삭임 · 전신 자극 · ASMR",pop:5},
+EDPFN:{name:"다크 커맨더",emoji:"⛓️",sub:"금기를 넘고, 지배하고, 몰아붙이는 자",color:"#2D3436",desc:"금기적 판타지를 주도적으로 실현합니다. 상대의 심리적 경계선을 탐색하고 그 너머로 이끄는 과정에서 흥분합니다.",kink:"본디지 · 에지 플레이 · 오르가즘 컨트롤 · 역할극 · 명령/복종",pop:3},
+EDPFW:{name:"와일드카드",emoji:"🃏",sub:"예측 불가능하게, 온몸으로, 금기를 넘는 자",color:"#636E72",desc:"다양한 시도를 동시에 펼치는 타입. 상대의 온몸 전체를 무대로 사용하며, 매번 다른 시나리오를 실행합니다.",kink:"즉흥 시나리오 · 다중 자극 · 장소 이동 · 소도구 활용 · 서프라이즈",pop:2},
+EDPRN:{name:"섀도우 헌터",emoji:"🌑",sub:"어둠 속에서, 천천히, 정확하게 파고드는 자",color:"#2D3436",desc:"가장 전략적인 주도형. 상대의 약점을 정확히 파악하고 그 한 점을 끝까지 공략합니다.",kink:"심리적 긴장 · 핀포인트 공략 · 느린 지배 · 반응 관찰 · 약점 파악",pop:2},
+EDPRW:{name:"카오스 메이커",emoji:"💫",sub:"경계를 부수고, 기다렸다 휩쓰는 자",color:"#E84393",desc:"평소에는 잠잠하다가, 적절한 트리거가 오면 폭발적으로 모든 금기를 가로지릅니다.",kink:"기습적 전환 · 경계 파괴 · 다감각 공략 · 예측 불가 타이밍 · 폭풍의 눈",pop:2},
+EDMFN:{name:"마인드 아키텍트",emoji:"🧠",sub:"머릿속에서 설계하고, 정밀하게 실행하는 자",color:"#6C5CE7",desc:"섹스의 모든 시나리오를 미리 머릿속에서 설계하고, 그것을 정밀하게 실행하는 타입. 가장 지적인 주도형.",kink:"시나리오 설계 · 역할극 · 정밀한 지배 · 심리적 통제 · 언어적 지배",pop:2},
+EDMFW:{name:"스톰 브링어",emoji:"🌩️",sub:"감정의 폭풍을 일으키고, 온몸을 휩쓰는 자",color:"#A29BFE",desc:"강렬한 감정과 강렬한 신체 경험을 동시에 만들어내는 타입. 가장 압도적인 러버.",kink:"감정적 폭풍 · 전신 지배 · 강렬한 분위기 · 카리스마 리드 · 감정+신체 동시",pop:2},
+EDMRN:{name:"팬텀",emoji:"🎭",sub:"보이지 않는 곳에서, 심리로 지배하는 자",color:"#636E72",desc:"평소에는 성적 관심이 드러나지 않지만, 일단 모드가 켜지면 심리적 지배로 상대를 한 점에 고정시킵니다.",kink:"심리적 지배 · 분위기 통제 · 갑작스러운 전환 · 미스터리 · 집중 공략",pop:2},
+EDMRW:{name:"이모셔널 익스플로러",emoji:"🌌",sub:"느끼고, 탐험하고, 경계를 넓히는 자",color:"#A29BFE",desc:"금기 호기심과 감정적 깊이가 동시에 작동하는 복합형. 침대 위에서 가장 유연한 타입입니다.",kink:"새로운 장소 · 코스프레 · 상호 탐색 · 긴 대화 후 섹스 · 여행지 섹스",pop:3},
+ESPFN:{name:"레드존",emoji:"🟥",sub:"금기 속으로, 몸을 던지고, 한 점에서 폭발하는 자",color:"#D63031",desc:"가장 과감한 수용형. '그거 해봐. 뭐든 해도 돼'라고 말하는 타입. 상대의 가장 어두운 면을 끌어내는 촉매.",kink:"과감한 수용 · 자발적 복종 · 한계 테스트 · 금기 요청 · 집중 쾌감",pop:2},
+ESPFW:{name:"프리즘",emoji:"🔮",sub:"모든 색으로 반응하고, 온몸이 무지개인 자",color:"#FD79A8",desc:"어떤 자극이든 온몸으로 받아들이며, 가장 개방적인 타입.",kink:"전방위 수용 · 다감각 반응 · 실험적 개방 · 서프라이즈 반응 · 무한 호기심",pop:2},
+ESPRN:{name:"에코",emoji:"🫥",sub:"상대의 금기를 받아들이고, 한 곳에서 공명하는 자",color:"#B2BEC3",desc:"상대의 어두운 판타지를 판단 없이 받아들이며, 그 안에서 하나의 감각에 깊이 공명합니다.",kink:"판단 없는 수용 · 금기 공명 · 단일 감각 몰입 · 상대 판타지 실현 · 깊은 항복",pop:2},
+ESPRW:{name:"드리프터",emoji:"🌠",sub:"어디든 떠다니고, 무엇이든 받아들이는 자",color:"#DFE6E9",desc:"가장 경계가 없는 타입. 자기 욕망의 형태가 고정되어 있지 않고, 상대와 상황에 따라 완전히 달라집니다.",kink:"극도의 유연성 · 상황 순응 · 무경계 탐험 · 흐름 맡김 · 형태 없는 욕망",pop:2},
+ESMFN:{name:"시크릿 키퍼",emoji:"🗝️",sub:"비밀 판타지를 품고, 맡기고, 한 곳에서 녹는 자",color:"#FDCB6E",desc:"가장 복잡한 내면을 가진 타입. 신뢰하는 상대에게만 열쇠를 건넵니다.",kink:"숨겨진 판타지 · 선택적 개방 · 집중 수용 · 비밀 공유 · 신뢰 기반 항복",pop:2},
+ESMFW:{name:"오로라",emoji:"🌈",sub:"감정의 색이 바뀌며, 온몸으로 피어나는 자",color:"#E17055",desc:"감정의 색조가 바뀔 때마다 욕망의 형태도 바뀝니다. 가장 다채로운 수용형.",kink:"감정에 따른 변화 · 다채로운 수용 · 전신 반응 · 분위기 의존 · 예술적 섹스",pop:2},
+ESMRN:{name:"문라이트",emoji:"🌙",sub:"밤의 끝에서, 고요히 항복하는 자",color:"#636E72",desc:"어둡고 고요한 분위기에서 가장 깊이 반응합니다. 세상이 사라지는 경험을 추구합니다.",kink:"어둠 속 항복 · 고요한 수용 · 극도의 몰입 · 심리적 굴복 · 세계 차단",pop:2},
+ESMRW:{name:"판타지 서렌더",emoji:"🦋",sub:"상상하고, 맡기고, 퍼져나가는 자",color:"#FD79A8",desc:"가장 강력한 성적 에너지원은 머릿속입니다. 금기적 판타지에 끌리되, 직접 주도하기보다 상대에게 맡깁니다.",kink:"시나리오 플레이 · 눈 가리기 · 서프라이즈 · 감각 박탈 · 코스프레",pop:4},
+};
+
+/* ── ALGORITHMIC COMPATIBILITY ── */
+function calcCompat(a,b){
+  const W=[{s:20,d:5,w:1},{s:5,d:25,w:1.2},{s:15,d:8,w:.8},{s:18,d:6,w:1},{s:15,d:8,w:.8}];
+  let raw=0;for(let i=0;i<5;i++){const m=a[i]===b[i];raw+=(m?W[i].s:W[i].d)*W[i].w;}
+  return Math.round(Math.min(95,Math.max(25,(raw-29.8)/(92-29.8)*70+25)));
+}
+
+function getBestMatch(code){
+  const all=Object.keys(T32);let bk=all[0],bs=0;
+  for(const k of all){if(k===code)continue;const s=calcCompat(code,k);if(s>bs){bs=s;bk=k;}}
+  return bk;
+}
+
+function getCode(sc){return AXIS_META.map((a,i)=>sc[i]>=a.max/2?"ESMRW"[i]:"IDPFN"[i]).join("");}
+
+function findType(code){
+  if(T32[code])return{code,...T32[code],typeKey:code,match:getBestMatch(code)};
+  let bk="ISMRW",bs=-1;
+  for(const k of Object.keys(T32)){let s=0;for(let i=0;i<5;i++)if(code[i]===k[i])s++;if(s>bs){bs=s;bk=k;}}
+  return{code,...T32[bk],typeKey:code,match:getBestMatch(code)};
+}
+
+function isValidCode(c){return c.length===5&&[..."IDPFNESMRW"].length&&/^[IEDPSSMFRRNW]{5}$/.test(c)&&"IE".includes(c[0])&&"DS".includes(c[1])&&"PM".includes(c[2])&&"FR".includes(c[3])&&"NW".includes(c[4]);}
+
+/* ── AXIS INSIGHTS ── */
+function getAxisInsight(a,b){
+  const ins=[];const labels=["판타지 성향","권력 역학","흥분 트리거","욕망 패턴","감각 범위"];
+  const rules=[[["I","I","둘 다 친밀함을 원합니다."],["I","E","한 쪽은 안정, 한 쪽은 모험."],["E","I","한 쪽은 모험, 한 쪽은 안정."],["E","E","둘 다 새로운 것을 원합니다."]],
+  [["D","S","주도-수용이 자연스럽게 맞습니다."],["S","D","주도-수용이 자연스럽게 맞습니다."],["D","D","둘 다 주도하려 합니다. 순서를 정하면 불꽃."],["S","S","둘 다 맡기려 합니다. 누군가 먼저 시작해야 해요."]],
+  [["P","P","둘 다 몸에서 시작됩니다."],["M","M","둘 다 감정이 먼저. 대화가 최고의 전희."],["P","M","시작점이 다릅니다. 한 쪽이 기다려줘야 해요."],["M","P","시작점이 다릅니다. 한 쪽이 기다려줘야 해요."]],
+  [["F","F","둘 다 먼저 원합니다."],["R","R","둘 다 천천히. 누군가 불을 붙여야 합니다."],["F","R","자연스러운 리듬. 한 쪽이 점화합니다."],["R","F","자연스러운 리듬. 한 쪽이 점화합니다."]],
+  [["N","N","둘 다 한 곳에 집중. 깊이가 엄청납니다."],["W","W","둘 다 온몸. 끝없이 탐색하는 밤."],["N","W","한 쪽은 깊이, 한 쪽은 넓이. 조율하면 완벽."],["W","N","한 쪽은 깊이, 한 쪽은 넓이. 조율하면 완벽."]]];
+  for(let i=0;i<5;i++){const f=rules[i].find(([x,y])=>x===a[i]&&y===b[i]);if(f){const good=i===1?(a[i]!==b[i]):(a[i]===b[i]);ins.push({axis:labels[i],text:f[2],status:good?"match":a[i]===b[i]&&i===1?"tension":"adjust"});}}
+  return ins;
+}
+
+const PH={warm:"워밍업",core:"본격 진입",deep:"더 깊이",last:"마지막"};
+const PH_SUB={warm:"긴장을 풀어보세요",core:"지금부터\n솔직해져야 합니다",deep:"당신도 몰랐던\n영역으로",last:""};
+const C={bg:"#050510",scene:"#C8C4D8",prompt:"#FFFFFF",choice:"#DBD7EA",choiceBg:"rgba(255,255,255,0.03)",choiceHover:"rgba(255,255,255,0.07)",choiceBorder:"rgba(255,255,255,0.06)",choiceBorderHover:"rgba(232,67,147,0.25)",muted:"#7B7590",dim:"#4A4460",vdim:"#2A2540",accent:"#E84393",accent2:"#6C5CE7"};
+const F="'Pretendard','Noto Sans KR',sans-serif";
+
+/* ════════════════════════════════════════════════════════════════
+   MAIN APP
+   ════════════════════════════════════════════════════════════════ */
+function App(){
+  const[page,setPage]=useState("test"); // test | compare
+  const[scr,setScr]=useState("splash");
+  const[gender,setGender]=useState(null);
+  const[qs,setQs]=useState([]);
+  const[qi,setQi]=useState(0);
+  const[sc,setSc]=useState([0,0,0,0,0]);
+  const[fade,setFade]=useState(true);
+  const[res,setRes]=useState(null);
+  const[phTr,setPhTr]=useState(null);
+  const[splashDone,setSplashDone]=useState(false);
+
+  // Compare state
+  const[myCode,setMyCode]=useState("");
+  const[theirCode,setTheirCode]=useState("");
+  const[cResult,setCResult]=useState(null);
+  const[cTab,setCTab]=useState("compare");
+  const[animPct,setAnimPct]=useState(0);
+
+  useEffect(()=>{const t=setTimeout(()=>setSplashDone(true),2800);return()=>clearTimeout(t);},[]);
+  useEffect(()=>{if(splashDone&&scr==="splash"){setFade(false);setTimeout(()=>setScr("landing"),400);}},[splashDone]);
+  useEffect(()=>{setFade(false);setTimeout(()=>setFade(true),80);},[scr,qi,page]);
+
+  const go=s=>{setFade(false);setTimeout(()=>setScr(s),300);};
+  const selG=g=>{setGender(g);setQs(buildQ(g));go("age");};
+  const pick=idx=>{
+    const ns=[...sc];ns[qs[qi].axis]+=idx;setSc(ns);
+    if(qi<qs.length-1){const np=qs[qi+1]?.phase,cp=qs[qi]?.phase;
+      if(np!==cp&&np!=="last"){
+        setPhTr(PH[np]);setFade(false);
+        setTimeout(()=>setFade(true),80);
+        setTimeout(()=>{setFade(false);setTimeout(()=>{setPhTr(null);setQi(qi+1);},400);},4000);
+      }
+      else{setFade(false);setTimeout(()=>setQi(qi+1),280);}
+    }else{const r=findType(getCode(ns));setRes(r);setMyCode(r.typeKey);go("result");}
+  };
+  const reset=()=>{setScr("landing");setGender(null);setQi(0);setSc([0,0,0,0,0]);setRes(null);setPage("test");};
+  const goCompare=()=>{setPage("compare");setCResult(null);setCTab("compare");setFade(false);};
+
+  const doCompare=()=>{
+    const m=myCode.toUpperCase().trim(),t=theirCode.toUpperCase().trim();
+    if(!isValidCode(m)||!isValidCode(t)){alert("유효한 5글자 코드를 입력해주세요 (예: IDPFN)");return;}
+    const score=calcCompat(m,t);const insights=getAxisInsight(m,t);
+    const mT=T32[m]||findType(m);const tT=T32[t]||findType(t);
+    setCResult({my:m,their:t,score,insights,myType:mT,theirType:tT});
+    setAnimPct(0);setTimeout(()=>setAnimPct(score),500);
+  };
+
+  const Sec=({children,sx})=><div style={{background:"rgba(255,255,255,0.025)",border:"1px solid rgba(255,255,255,0.04)",borderRadius:16,padding:"20px 18px",marginBottom:14,...sx}}>{children}</div>;
+  const Label=({children})=><div style={{fontSize:11,color:C.dim,letterSpacing:2,marginBottom:10,fontWeight:300}}>{children}</div>;
+
+  const myT32=T32[myCode.toUpperCase().trim()];
+  const allTypes=Object.entries(T32).sort((a,b)=>b[1].pop-a[1].pop);
+
+  return(
+  <div style={{minHeight:"100vh",background:C.bg,fontFamily:F,color:"#E8E6F0",position:"relative",overflow:"hidden"}}>
+  <div style={{position:"fixed",top:"8%",left:"50%",transform:"translateX(-50%)",width:"100vw",height:"60vh",background:"radial-gradient(ellipse, rgba(232,67,147,0.03) 0%, transparent 55%)",pointerEvents:"none",filter:"blur(80px)"}}/>
+
+  {/* ═══ SPLASH ═══ */}
+  {scr==="splash"&&page==="test"&&(
+    <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:100,background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",animation:"splashFade 2.8s ease forwards"}}>
+      <div style={{position:"absolute",width:"50vw",height:"50vh",background:"radial-gradient(ellipse,rgba(232,67,147,0.06) 0%,transparent 60%)",filter:"blur(60px)"}}/>
+      <h1 style={{fontFamily:F,fontSize:52,fontWeight:900,margin:0,animation:"splashPulse 2.8s ease",letterSpacing:-1}}>
+        <span style={{background:"linear-gradient(135deg,#E84393,#6C5CE7)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>본색</span>
+      </h1>
+      <div style={{width:0,height:2,background:"linear-gradient(90deg,#E84393,#6C5CE7)",margin:"16px 0",borderRadius:1,animation:"lineGrow 1s ease 0.6s forwards"}}/>
+      <p style={{fontSize:13,color:C.muted,fontWeight:300,margin:0,letterSpacing:2,opacity:0,animation:"subtitleIn 0.8s ease 1.2s forwards"}}>숨겨둔 욕망을 마주하는 시간</p>
+    </div>
+  )}
+
+  <div style={{maxWidth:420,margin:"0 auto",padding:"0 24px",minHeight:"100vh",display:"flex",flexDirection:"column",opacity:fade?1:0,transform:fade?"translateY(0)":"translateY(16px)",transition:"opacity 0.4s ease, transform 0.4s ease"}}>
+
+  {/* ════════════ TEST PAGE ════════════ */}
+  {page==="test"&&(<>
+
+    {phTr&&(<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{textAlign:"center",padding:"0 24px"}}>
+      <div style={{fontSize:10,color:C.accent,letterSpacing:6,fontWeight:400,textTransform:"uppercase",animation:"phNameIn 0.6s ease forwards",opacity:0}}>{phTr}</div>
+      <div style={{width:0,height:1,background:"linear-gradient(90deg,transparent,"+C.accent+",transparent)",margin:"16px auto 20px",animation:"phLineGrow 0.5s ease 0.4s forwards",opacity:0}}/>
+      <div style={{fontSize:22,color:"#fff",fontWeight:700,lineHeight:1.8,whiteSpace:"pre-line",animation:"phSubIn 0.6s ease 0.8s forwards",opacity:0}}>{PH_SUB[Object.keys(PH).find(k=>PH[k]===phTr)]}</div>
+    </div></div>)}
+
+    {scr==="landing"&&!phTr&&(
+      <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",paddingBottom:48}}>
+        <div style={{textAlign:"center",marginBottom:48}}>
+          <div style={{fontSize:11,letterSpacing:6,color:C.dim,marginBottom:28,fontWeight:300}}>성적 취향 자기발견 테스트</div>
+          <h1 style={{fontSize:42,fontWeight:900,lineHeight:1.2,margin:"0 0 6px",color:"#fff"}}>당신의 <span style={{background:"linear-gradient(90deg,#E84393,#6C5CE7)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>본색</span>을<br/>드러낼 시간</h1>
+          <p style={{fontSize:13.5,color:C.muted,lineHeight:1.8,margin:"28px 0 0",fontWeight:300}}>대부분의 사람은 자기 몸이 진짜 원하는 걸 모릅니다.<br/>사회가 정한 기준에 맞춰 욕망을 숨기고 있을 뿐.</p>
+          <p style={{fontSize:13,color:C.scene,marginTop:16,lineHeight:1.6}}>18개의 질문이 당신을 장면 속으로 데려갑니다.<br/><span style={{color:C.accent,fontWeight:600}}>읽는 순간, 몸이 먼저 답합니다.</span></p>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{fontSize:11,color:C.dim,textAlign:"center",marginBottom:4,letterSpacing:2,fontWeight:300}}>성별을 선택하세요</div>
+          {[["남성","M"],["여성","F"]].map(([l,v])=>(
+            <button key={v} onClick={()=>selG(v)} style={{padding:"16px 20px",border:"1px solid "+C.choiceBorder,borderRadius:14,background:C.choiceBg,color:C.scene,fontSize:14.5,cursor:"pointer",transition:"all 0.2s",textAlign:"center",fontWeight:500}}
+              onMouseEnter={e=>{e.target.style.background=C.choiceHover;e.target.style.borderColor=C.choiceBorderHover;}}
+              onMouseLeave={e=>{e.target.style.background=C.choiceBg;e.target.style.borderColor=C.choiceBorder;}}>{l}</button>))}
+        </div>
+        <p style={{textAlign:"center",fontSize:10,color:C.muted,marginTop:24}}>🔞 만 19세 이상 · 모든 응답은 저장되지 않습니다</p>
+      </div>
+    )}
+
+    {scr==="age"&&!phTr&&(
+      <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center"}}>
+        <div style={{background:"rgba(232,67,147,0.03)",border:"1px solid rgba(232,67,147,0.1)",borderRadius:20,padding:"40px 28px",textAlign:"center"}}>
+          <div style={{fontSize:36,marginBottom:16}}>🔞</div>
+          <h2 style={{fontSize:20,fontWeight:800,color:"#fff",margin:"0 0 14px"}}>성인만 참여할 수 있습니다</h2>
+          <p style={{fontSize:13.5,color:C.scene,lineHeight:1.7,margin:"0 0 8px"}}>이 테스트는 구체적인 성적 상황을 묘사하며<br/><span style={{color:C.accent,fontWeight:600}}>성행위, 판타지, 자위, 속박</span> 등의<br/>직접적인 내용을 포함합니다.</p>
+          <p style={{fontSize:12,color:C.muted,lineHeight:1.6,margin:"0 0 28px"}}>질문을 읽는 것 자체가 경험입니다.<br/>당신의 몸이 어떻게 반응하는지 관찰해보세요.</p>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <button onClick={()=>{setPhTr(PH.warm);setFade(false);setTimeout(()=>setFade(true),80);setTimeout(()=>{setFade(false);setTimeout(()=>{setPhTr(null);go("test");},400);},4000);}} style={{padding:"18px",border:"none",borderRadius:14,background:"linear-gradient(135deg,#E84393,#6C5CE7)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer"}}>네, 19세 이상입니다</button>
+            <button onClick={reset} style={{padding:"14px",border:"1px solid "+C.choiceBorder,borderRadius:14,background:"transparent",color:C.dim,fontSize:13,cursor:"pointer"}}>돌아가기</button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {scr==="test"&&qs.length>0&&!phTr&&(
+      <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",paddingTop:24,paddingBottom:32}}>
+        <div style={{marginBottom:36}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <span style={{fontSize:12,color:C.dim,letterSpacing:2,fontWeight:300}}>{PH[qs[qi].phase]}</span>
+            <span style={{fontSize:15,color:C.accent,fontWeight:700}}>{qi+1}<span style={{color:C.vdim,fontWeight:400}}> / {qs.length}</span></span>
+          </div>
+          <div style={{height:2,background:"rgba(255,255,255,0.025)",borderRadius:1}}><div style={{height:"100%",borderRadius:1,background:"linear-gradient(90deg,#E84393,#6C5CE7)",width:((qi+1)/qs.length*100)+"%",transition:"width 0.5s ease"}}/></div>
+        </div>
+        <div style={{marginBottom:qs[qi].prompt?20:32}}><p style={{fontSize:15.5,fontWeight:300,lineHeight:2,color:C.scene,whiteSpace:"pre-line",margin:0}}>{qs[qi].scene}</p></div>
+        {qs[qi].prompt&&(<div style={{marginBottom:32}}><p style={{fontSize:20,fontWeight:800,lineHeight:1.5,color:C.prompt,whiteSpace:"pre-line",margin:0}}>{qs[qi].prompt}</p></div>)}
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          {qs[qi].a.map((a,i)=>(
+            <button key={qi+"-"+i} onClick={()=>pick(i)} style={{padding:"20px",border:"1px solid "+C.choiceBorder,borderRadius:14,background:C.choiceBg,color:C.choice,fontSize:14,lineHeight:1.7,textAlign:"left",cursor:"pointer",transition:"all 0.2s",whiteSpace:"pre-line",fontWeight:400}}
+              onMouseEnter={e=>{e.target.style.background=C.choiceHover;e.target.style.borderColor=C.choiceBorderHover;e.target.style.transform="translateX(3px)";}}
+              onMouseLeave={e=>{e.target.style.background=C.choiceBg;e.target.style.borderColor=C.choiceBorder;e.target.style.transform="none";}}>{a}</button>))}
+        </div>
+      </div>
+    )}
+
+    {scr==="result"&&res&&!phTr&&(
+      <div style={{flex:1,display:"flex",flexDirection:"column",paddingTop:44,paddingBottom:44}}>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{fontSize:12,letterSpacing:4,color:C.dim,marginBottom:20,fontWeight:300}}>당신의 본색</div>
+          <div style={{fontSize:56,marginBottom:10}}>{res.emoji}</div>
+          <div style={{display:"inline-block",padding:"5px 16px",borderRadius:20,background:res.color+"10",border:"1px solid "+res.color+"22",fontFamily:"'Bebas Neue',sans-serif",fontSize:15,letterSpacing:5,color:res.color,marginBottom:12}}>{res.typeKey}</div>
+          <h2 style={{fontSize:32,fontWeight:900,color:"#fff",margin:"0 0 4px"}}>{res.name}</h2>
+          <p style={{fontSize:13.5,color:C.muted,margin:0,fontWeight:300}}>{res.sub}</p>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.04)",borderRadius:18,padding:"24px 22px",marginBottom:16,position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",bottom:-30,right:-30,width:120,height:120,background:"radial-gradient(circle,"+res.color+"0A 0%,transparent 60%)"}}/>
+          <p style={{fontSize:14,lineHeight:1.9,color:C.scene,margin:0,position:"relative",fontWeight:300}}>{res.desc}</p>
+        </div>
+        <div style={{background:res.color+"06",borderRadius:14,padding:"16px 18px",border:"1px solid "+res.color+"12",marginBottom:16}}>
+          <div style={{fontSize:11,color:C.dim,letterSpacing:2,marginBottom:6,fontWeight:300}}>🔥 끌리는 키워드</div>
+          <p style={{fontSize:14.5,color:res.color,margin:0,fontWeight:600}}>{res.kink}</p>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.02)",borderRadius:14,padding:"20px 18px",marginBottom:16,border:"1px solid rgba(255,255,255,0.03)"}}>
+          <div style={{fontSize:11,color:C.dim,marginBottom:16,letterSpacing:2,fontWeight:300}}>욕망 스펙트럼</div>
+          {AXIS_META.map((ax,i)=>{const v=sc[i];const pct=Math.max(10,Math.min(90,(v/ax.max)*100));const isR=v>=ax.max/2;return(
+            <div key={i} style={{marginBottom:i<4?16:0}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                <span style={{fontSize:12,color:!isR?"#fff":C.dim,fontWeight:!isR?700:400}}>{ax.l}</span>
+                <span style={{fontSize:12,color:isR?"#fff":C.dim,fontWeight:isR?700:400}}>{ax.r}</span>
+              </div>
+              <div style={{height:5,background:"rgba(255,255,255,0.025)",borderRadius:3,position:"relative"}}>
+                <div style={{position:"absolute",top:0,left:0,height:"100%",borderRadius:3,background:"linear-gradient(90deg,"+res.color+"33,"+res.color+")",width:pct+"%",transition:"width 1.2s cubic-bezier(0.4,0,0.2,1)"}}/>
+                <div style={{position:"absolute",top:-3,height:11,width:11,borderRadius:"50%",background:res.color,boxShadow:"0 0 10px "+res.color+"44",left:"calc("+pct+"% - 5px)",transition:"left 1.2s cubic-bezier(0.4,0,0.2,1)"}}/>
+              </div>
+            </div>);})}
+        </div>
+        <div onClick={goCompare} style={{background:"linear-gradient(135deg,"+C.accent+"12,"+C.accent2+"12)",borderRadius:14,padding:"20px 18px",marginBottom:28,border:"1px solid "+C.accent+"20",cursor:"pointer",transition:"all 0.2s"}}
+          onMouseEnter={e=>{e.currentTarget.style.border="1px solid "+C.accent+"44";e.currentTarget.style.transform="scale(1.01)";}}
+          onMouseLeave={e=>{e.currentTarget.style.border="1px solid "+C.accent+"20";e.currentTarget.style.transform="none";}}>
+          <div style={{fontSize:11,color:C.dim,marginBottom:8,letterSpacing:2,fontWeight:300}}>나와 가장 잘 맞는 유형</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{fontSize:17,fontWeight:700,color:"#fff"}}>{T32[res.match]?.emoji} {res.match}<span style={{fontSize:12,fontWeight:400,color:C.muted,marginLeft:6}}>{T32[res.match]?.name}</span></div>
+          </div>
+          <div style={{padding:"14px",borderRadius:12,background:"linear-gradient(135deg,#E84393,#6C5CE7)",color:"#fff",fontSize:14,fontWeight:700,textAlign:"center"}}>본색 궁합 보러가기 →</div>
+        </div>
+        <button onClick={reset} style={{padding:12,border:"none",background:"transparent",width:"100%",color:C.scene,fontSize:12,cursor:"pointer"}}>다시 테스트하기</button>
+        <p style={{textAlign:"center",fontSize:8.5,color:"#12101E",marginTop:24,lineHeight:1.5}}>성과학 연구 기반 축 설계 · {gender==="F"?"여성 맞춤 문항 포함 · ":gender==="M"?"남성 맞춤 문항 포함 · ":""}의학적 진단 도구가 아닙니다</p>
+      </div>
+    )}
+  </>)}
+
+  {/* ════════════ COMPARE PAGE ════════════ */}
+  {page==="compare"&&(<>
+    <div style={{textAlign:"center",marginTop:28,marginBottom:24}}>
+      <div style={{fontSize:11,letterSpacing:6,color:C.dim,marginBottom:12,fontWeight:300}}>본색 궁합</div>
+      <h1 style={{fontSize:28,fontWeight:900,color:"#fff",margin:0,lineHeight:1.3}}>우리의 <span style={{background:"linear-gradient(90deg,#E84393,#6C5CE7)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>욕망</span>은 맞을까?</h1>
+      <p style={{fontSize:12,color:C.muted,marginTop:10,fontWeight:300}}>서로의 코드를 입력하면 5축 궁합을 분석합니다</p>
+    </div>
+
+    <div style={{display:"flex",gap:4,marginBottom:24,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:4}}>
+      {[["compare","🔗 코드 비교"],["stats","📊 욕망 통계"]].map(([id,label])=>(
+        <button key={id} onClick={()=>{setCTab(id);setCResult(null);}} style={{flex:1,padding:"12px",border:"none",borderRadius:10,cursor:"pointer",background:cTab===id?"linear-gradient(135deg,"+C.accent+"20,"+C.accent2+"20)":"transparent",color:cTab===id?"#fff":C.muted,fontSize:13,fontWeight:cTab===id?700:400,transition:"all 0.2s"}}>{label}</button>))}
+    </div>
+
+    {/* ── COMPARE INPUT ── */}
+    {cTab==="compare"&&!cResult&&(<>
+      <Sec>
+        <Label>나의 코드</Label>
+        <input value={myCode} onChange={e=>setMyCode(e.target.value.toUpperCase().slice(0,5))} placeholder="IDPFN" maxLength={5} style={{width:"100%",padding:"14px 16px",border:"1px solid "+(myCode&&isValidCode(myCode)?C.accent+"44":"rgba(255,255,255,0.08)"),borderRadius:12,background:"rgba(255,255,255,0.03)",color:C.accent,fontSize:20,fontWeight:700,letterSpacing:6,textAlign:"center",fontFamily:"'Bebas Neue',sans-serif",outline:"none",boxSizing:"border-box"}}/>
+        {myCode&&T32[myCode]&&<div style={{textAlign:"center",marginTop:8,fontSize:13,color:C.scene}}>{T32[myCode].emoji} {T32[myCode].name}</div>}
+        <div style={{height:20}}/>
+        <Label>상대의 코드</Label>
+        <input value={theirCode} onChange={e=>setTheirCode(e.target.value.toUpperCase().slice(0,5))} placeholder="ISMRW" maxLength={5} style={{width:"100%",padding:"14px 16px",border:"1px solid "+(theirCode&&isValidCode(theirCode)?C.accent2+"44":"rgba(255,255,255,0.08)"),borderRadius:12,background:"rgba(255,255,255,0.03)",color:C.accent2,fontSize:20,fontWeight:700,letterSpacing:6,textAlign:"center",fontFamily:"'Bebas Neue',sans-serif",outline:"none",boxSizing:"border-box"}}/>
+        {theirCode&&T32[theirCode]&&<div style={{textAlign:"center",marginTop:8,fontSize:13,color:C.scene}}>{T32[theirCode].emoji} {T32[theirCode].name}</div>}
+      </Sec>
+
+      {/* Demo presets — only show when myCode is valid */}
+      {isValidCode(myCode)&&(<div style={{marginBottom:16}}>
+        <Label>나의 궁합 미리보기</Label>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+          {(()=>{
+            const mc=myCode.toUpperCase().trim();if(!isValidCode(mc))return null;
+            const best=getBestMatch(mc);
+            const allK=Object.keys(T32).filter(k=>k!==mc);
+            const worst=allK.reduce((w,k)=>calcCompat(mc,k)<calcCompat(mc,w)?k:w,allK[0]);
+            const sameDS=allK.find(k=>k[1]===mc[1]&&k!==best&&k!==worst)||allK[2];
+            return[
+              {label:"🔥 최고 궁합",their:best,desc:T32[best]?.name},
+              {label:"⚡ 긴장 궁합",their:sameDS,desc:T32[sameDS]?.name},
+              {label:"🧊 정반대",their:worst,desc:T32[worst]?.name},
+              {label:"🪞 같은 유형",their:mc,desc:"나 vs 나"},
+            ].map((d,i)=>(
+            <button key={i} onClick={()=>{setTheirCode(d.their);}} style={{flex:"1 1 45%",padding:"10px 12px",borderRadius:10,border:"1px solid rgba(255,255,255,0.05)",background:"rgba(255,255,255,0.02)",cursor:"pointer",textAlign:"left",transition:"all 0.2s"}}
+              onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.05)"}
+              onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.02)"}>
+              <div style={{fontSize:13,color:C.choice}}>{d.label}</div>
+              <div style={{fontSize:10,color:C.dim,marginTop:2}}>{d.desc} ({calcCompat(mc,d.their)}%)</div>
+            </button>));})()}
+        </div>
+      </div>)}
+
+      <button onClick={doCompare} style={{padding:"18px",border:"none",borderRadius:14,width:"100%",background:"linear-gradient(135deg,#E84393,#6C5CE7)",color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer",textAlign:"center",opacity:isValidCode(myCode)&&isValidCode(theirCode)?1:0.4,transition:"all 0.2s",marginBottom:6}}>본색 궁합 확인하기</button>
+      <button onClick={reset} style={{padding:12,border:"none",background:"transparent",width:"100%",color:C.scene,fontSize:12,cursor:"pointer",marginTop:4}}>← 다시 찾아보기</button>
+    </>)}
+
+    {/* ── COMPARE RESULT ── */}
+    {cTab==="compare"&&cResult&&(<>
+      {/* Score ring */}
+      <div style={{textAlign:"center",marginBottom:24}}>
+        <div style={{position:"relative",width:160,height:160,margin:"0 auto 16px"}}>
+          <svg viewBox="0 0 160 160" style={{transform:"rotate(-90deg)"}}><circle cx="80" cy="80" r="68" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="6"/><circle cx="80" cy="80" r="68" fill="none" stroke="url(#cg)" strokeWidth="6" strokeLinecap="round" strokeDasharray={animPct*4.27+" 427"} style={{transition:"stroke-dasharray 1.5s cubic-bezier(0.4,0,0.2,1)"}}/><defs><linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="#E84393"/><stop offset="100%" stopColor="#6C5CE7"/></linearGradient></defs></svg>
+          <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center"}}>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:52,color:"#fff",lineHeight:1}}>{animPct}<span style={{fontSize:20,color:C.muted}}>%</span></div>
+          </div>
+        </div>
+        <p style={{fontSize:14,color:C.scene,lineHeight:1.7,margin:0,fontWeight:300,padding:"0 10px"}}>{cResult.score>=80?"불꽃이 확실합니다.\n서로의 욕망이 자연스럽게 맞물립니다.":cResult.score>=60?"좋은 궁합입니다.\n몇 가지만 맞추면 폭발할 수 있어요.":cResult.score>=40?"흥미로운 긴장감이 있습니다.\n대화가 열쇠입니다.":"정반대의 매력.\n서로를 이해하면 예상치 못한 화학 반응이 가능합니다."}</p>
+      </div>
+
+      {/* Two type cards */}
+      <div style={{display:"flex",gap:10,marginBottom:16}}>
+        {[{t:cResult.myType,code:cResult.my,label:"나",c:C.accent},{t:cResult.theirType,code:cResult.their,label:"상대",c:C.accent2}].map(({t,code,label,c})=>(
+          <div key={label} style={{flex:1,background:c+"08",border:"1px solid "+c+"18",borderRadius:16,padding:"18px 14px",textAlign:"center"}}>
+            <div style={{fontSize:10,color:C.dim,marginBottom:8,letterSpacing:2}}>{label}</div>
+            <div style={{fontSize:32,marginBottom:6}}>{t.emoji}</div>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:c,letterSpacing:4,marginBottom:4}}>{code}</div>
+            <div style={{fontSize:14,color:"#fff",fontWeight:700}}>{t.name}</div>
+            <div style={{fontSize:10,color:C.muted,marginTop:4,fontWeight:300}}>{t.sub}</div>
+          </div>))}
+      </div>
+
+      {/* 5-axis comparison */}
+      <Sec>
+        <Label>5축 욕망 비교</Label>
+        {cResult.insights.map((ins,i)=>(
+          <div key={i} style={{marginBottom:i<4?18:0}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <span style={{fontSize:13,color:C.scene,fontWeight:600}}>{ins.axis}</span>
+              <span style={{fontSize:10,padding:"3px 10px",borderRadius:10,background:ins.status==="match"?"rgba(0,184,148,0.12)":ins.status==="tension"?"rgba(232,67,147,0.12)":"rgba(162,155,254,0.12)",color:ins.status==="match"?"#00B894":ins.status==="tension"?"#E84393":"#A29BFE",fontWeight:600}}>{ins.status==="match"?"✓ 일치":ins.status==="tension"?"⚡ 긴장":"△ 조율"}</span>
+            </div>
+            <div style={{fontSize:13,color:C.muted,lineHeight:1.6}}>{ins.text}</div>
+          </div>))}
+      </Sec>
+
+      {/* CTAs */}
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
+        <button onClick={()=>setCResult(null)} style={{padding:"16px",border:"1px solid "+C.accent+"20",borderRadius:14,width:"100%",background:C.accent+"08",color:C.accent,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"center"}}>다른 코드로 비교하기</button>
+        <button onClick={reset} style={{padding:"16px",border:"none",borderRadius:14,width:"100%",background:"linear-gradient(135deg,#E84393,#6C5CE7)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",textAlign:"center"}}>다시 찾아보기</button>
+      </div>
+    </>)}
+
+    {/* ── STATS TAB ── */}
+    {cTab==="stats"&&(<>
+      <Sec>
+        <Label>나의 코드 입력</Label>
+        <input value={myCode} onChange={e=>setMyCode(e.target.value.toUpperCase().slice(0,5))} placeholder="IDPFN" maxLength={5} style={{width:"100%",padding:"14px 16px",border:"1px solid "+(myT32?C.accent+"44":"rgba(255,255,255,0.08)"),borderRadius:12,background:"rgba(255,255,255,0.03)",color:C.accent,fontSize:20,fontWeight:700,letterSpacing:6,textAlign:"center",fontFamily:"'Bebas Neue',sans-serif",outline:"none",boxSizing:"border-box"}}/>
+        {myT32&&<div style={{textAlign:"center",marginTop:8,fontSize:14,color:C.scene}}>{myT32.emoji} {myT32.name}</div>}
+      </Sec>
+
+      {myT32&&(<>
+        <Sec>
+          <Label>📊 당신의 유형 통계</Label>
+          <div style={{padding:"12px 14px",background:"rgba(255,255,255,0.02)",borderRadius:10,fontSize:13,color:C.scene,lineHeight:1.6,marginBottom:6}}>전체 사용자 중 약 <span style={{color:"#fff",fontWeight:600}}>{myT32.pop}%</span>가 당신과 같은 유형입니다</div>
+          <div style={{padding:"12px 14px",background:"rgba(255,255,255,0.02)",borderRadius:10,fontSize:13,color:C.scene,lineHeight:1.6}}>가장 잘 맞는 유형: <span style={{color:"#fff",fontWeight:600}}>{T32[getBestMatch(myCode)]?.emoji} {T32[getBestMatch(myCode)]?.name}</span> ({calcCompat(myCode,getBestMatch(myCode))}%)</div>
+        </Sec>
+
+        <Sec>
+          <Label>💕 유형별 궁합 TOP 10</Label>
+          {Object.keys(T32).filter(k=>k!==myCode).map(k=>({key:k,...T32[k],score:calcCompat(myCode,k)})).sort((a,b)=>b.score-a.score).slice(0,10).map((ct,i)=>(
+            <div key={ct.key} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<9?"1px solid rgba(255,255,255,0.03)":"none"}}>
+              <div style={{fontSize:10,color:C.dim,fontFamily:"'Bebas Neue',sans-serif",width:20,textAlign:"center"}}>{i+1}</div>
+              <div style={{fontSize:20}}>{ct.emoji}</div>
+              <div style={{flex:1}}><div style={{fontSize:13,color:"#fff",fontWeight:600}}>{ct.name}</div><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:11,color:C.dim,letterSpacing:2}}>{ct.key}</div></div>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <div style={{width:60,height:4,background:"rgba(255,255,255,0.03)",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",borderRadius:2,width:ct.score+"%",background:ct.score>=80?"linear-gradient(90deg,#E84393,#6C5CE7)":ct.score>=60?"#A29BFE":"rgba(255,255,255,0.15)",transition:"width 1s ease"}}/></div>
+                <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:ct.score>=80?"#fff":ct.score>=60?C.scene:C.muted,minWidth:30,textAlign:"right"}}>{ct.score}%</span>
+              </div>
+            </div>))}
+        </Sec>
+
+        <Sec>
+          <Label>🌍 전체 32유형 분포</Label>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {allTypes.map(([k,t])=>(
+              <div key={k} style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{fontSize:14,width:22,textAlign:"center"}}>{t.emoji}</div>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
+                    <span style={{fontSize:10,color:k===myCode?"#fff":C.muted,fontWeight:k===myCode?700:400}}>{t.name}</span>
+                    <span style={{fontSize:10,color:k===myCode?t.color:C.dim}}>{t.pop}%</span>
+                  </div>
+                  <div style={{height:3,background:"rgba(255,255,255,0.03)",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",borderRadius:2,width:(t.pop*12)+"%",background:k===myCode?t.color:"rgba(255,255,255,0.08)",transition:"width 1s ease"}}/></div>
+                </div>
+              </div>))}
+          </div>
+        </Sec>
+      </>)}
+
+      <button onClick={reset} style={{padding:"16px",border:"none",borderRadius:14,width:"100%",background:"linear-gradient(135deg,#E84393,#6C5CE7)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",textAlign:"center",marginTop:8}}>다시 찾아보기</button>
+    </>)}
+
+    <p style={{textAlign:"center",fontSize:8.5,color:"#12101E",marginTop:24,paddingBottom:20,lineHeight:1.5}}>이 서비스는 사람을 연결하지 않습니다 · 코드 교환은 외부에서 자율적으로 이루어집니다</p>
+  </>)}
+
+  </div>
+  </div>);
+}
+
+ReactDOM.render(React.createElement(App),document.getElementById("root"));
+</script>
+</body>
+</html>
