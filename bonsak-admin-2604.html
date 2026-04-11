@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>본색 관리자</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body,#root{min-height:100vh;background:#0a0a12;color:#e0ddf0}
+body{font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;-webkit-font-smoothing:antialiased}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect}=React;
+
+const SB_URL="https://dbiazksvsfrxcauroajv.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRiaWF6a3N2c2ZyeGNhdXJvYWp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzYxNjQsImV4cCI6MjA5MTUxMjE2NH0.bW6BtPHPziPlHThmmznoQH95LpmtvTzenkFmTzMlHlw";
+
+const T16_NAMES={
+  IDPN:"점화",IDPW:"탕진",IDMN:"냉혈",IDMW:"설계자",
+  ISPN:"잠복",ISPW:"진동",ISMN:"금고",ISMW:"녹는점",
+  EDPN:"저격수",EDPW:"난류",EDMN:"흑막",EDMW:"폭풍전야",
+  ESPN:"심연",ESPW:"안테나",ESMN:"백야",ESMW:"열대야"
+};
+
+const CAT_COLOR={ID:"#E84393",IS:"#00B894",ED:"#A29BFE",ES:"#FD79A8"};
+
+async function fetchAll(){
+  const res=await fetch(SB_URL+"/rest/v1/results?select=*&order=ts.desc&limit=1000",{
+    headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY}
+  });
+  return res.json();
+}
+
+function StatCard({label,value,sub,color}){
+  return(
+    <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:"20px 22px",flex:1,minWidth:140}}>
+      <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",letterSpacing:2,marginBottom:8}}>{label}</div>
+      <div style={{fontSize:32,fontWeight:700,color:color||"#fff",lineHeight:1}}>{value}</div>
+      {sub&&<div style={{fontSize:12,color:"rgba(255,255,255,0.35)",marginTop:6}}>{sub}</div>}
+    </div>
+  );
+}
+
+function BarChart({data,colorFn}){
+  const max=Math.max(...data.map(d=>d.count),1);
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {data.map((d,i)=>(
+        <div key={i} style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:80,fontSize:12,color:"rgba(255,255,255,0.6)",textAlign:"right",flexShrink:0}}>{d.label}</div>
+          <div style={{flex:1,height:22,background:"rgba(255,255,255,0.04)",borderRadius:4,overflow:"hidden"}}>
+            <div style={{height:"100%",width:(d.count/max*100)+"%",background:colorFn?colorFn(d):("#E84393"),borderRadius:4,transition:"width 0.8s ease",display:"flex",alignItems:"center",paddingLeft:8}}>
+              {d.count>0&&<span style={{fontSize:11,color:"#fff",fontWeight:600,whiteSpace:"nowrap"}}>{d.count}</span>}
+            </div>
+          </div>
+          <div style={{width:36,fontSize:11,color:"rgba(255,255,255,0.4)",textAlign:"right",flexShrink:0}}>{d.pct}%</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function App(){
+  const[data,setData]=useState(null);
+  const[loading,setLoading]=useState(true);
+  const[error,setError]=useState(null);
+  const[tab,setTab]=useState("overview");
+
+  useEffect(()=>{
+    fetchAll()
+      .then(d=>{setData(d);setLoading(false);})
+      .catch(e=>{setError(e.message);setLoading(false);});
+  },[]);
+
+  const refresh=()=>{
+    setLoading(true);
+    fetchAll().then(d=>{setData(d);setLoading(false);});
+  };
+
+  if(loading)return(
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",flexDirection:"column",gap:16}}>
+      <div style={{fontSize:24,fontWeight:700,color:"#E84393"}}>본색</div>
+      <div style={{fontSize:13,color:"rgba(255,255,255,0.4)"}}>데이터 불러오는 중...</div>
+    </div>
+  );
+
+  if(error)return(
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",flexDirection:"column",gap:12}}>
+      <div style={{fontSize:14,color:"#E84393"}}>연결 오류</div>
+      <div style={{fontSize:12,color:"rgba(255,255,255,0.4)"}}>{error}</div>
+    </div>
+  );
+
+  const total=data.length;
+  const today=data.filter(d=>new Date(d.ts).toDateString()===new Date().toDateString()).length;
+  const males=data.filter(d=>d.gender==="M").length;
+  const females=data.filter(d=>d.gender==="F").length;
+
+  // 유형 분포
+  const typeCounts={};
+  data.forEach(d=>{typeCounts[d.result]=(typeCounts[d.result]||0)+1;});
+  const typeData=Object.keys(T16_NAMES).map(k=>({
+    key:k,label:T16_NAMES[k]||k,count:typeCounts[k]||0,
+    pct:total>0?Math.round((typeCounts[k]||0)/total*100):0,
+    cat:k.slice(0,2)
+  })).sort((a,b)=>b.count-a.count);
+
+  // 날짜별 추이 (최근 14일)
+  const dateMap={};
+  data.forEach(d=>{
+    const dt=new Date(d.ts).toLocaleDateString("ko-KR",{month:"2-digit",day:"2-digit"});
+    dateMap[dt]=(dateMap[dt]||0)+1;
+  });
+  const last14=Array.from({length:14},(_,i)=>{
+    const d=new Date();d.setDate(d.getDate()-13+i);
+    const label=d.toLocaleDateString("ko-KR",{month:"2-digit",day:"2-digit"});
+    return{label,count:dateMap[label]||0,pct:0};
+  });
+  const maxDay=Math.max(...last14.map(d=>d.count),1);
+
+  // 최근 데이터
+  const recent=data.slice(0,50);
+
+  const C={bg:"#0a0a12",card:"rgba(255,255,255,0.04)",border:"rgba(255,255,255,0.07)",muted:"rgba(255,255,255,0.4)",accent:"#E84393",accent2:"#6C5CE7"};
+
+  return(
+    <div style={{maxWidth:900,margin:"0 auto",padding:"32px 20px"}}>
+
+      {/* 헤더 */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:32}}>
+        <div>
+          <div style={{fontSize:11,letterSpacing:4,color:C.muted,marginBottom:6}}>관리자</div>
+          <h1 style={{fontSize:28,fontWeight:900,color:"#fff"}}>본<span style={{background:"linear-gradient(90deg,#E84393,#6C5CE7)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>색</span> 대시보드</h1>
+        </div>
+        <button onClick={refresh} style={{padding:"10px 18px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,color:"rgba(255,255,255,0.7)",fontSize:13,cursor:"pointer"}}>새로고침</button>
+      </div>
+
+      {/* 탭 */}
+      <div style={{display:"flex",gap:4,marginBottom:28,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:4}}>
+        {[["overview","개요"],["types","유형 분포"],["trend","일별 추이"],["raw","원시 데이터"]].map(([id,label])=>(
+          <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"10px",border:"none",borderRadius:9,cursor:"pointer",background:tab===id?"linear-gradient(135deg,"+C.accent+"20,"+C.accent2+"20)":"transparent",color:tab===id?"#fff":C.muted,fontSize:13,fontWeight:tab===id?700:400,transition:"all 0.2s"}}>{label}</button>
+        ))}
+      </div>
+
+      {/* 개요 탭 */}
+      {tab==="overview"&&(
+        <div>
+          <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+            <StatCard label="총 테스트" value={total} sub="누적" color="#fff"/>
+            <StatCard label="오늘" value={today} sub={new Date().toLocaleDateString("ko-KR")} color={C.accent}/>
+            <StatCard label="남성" value={males} sub={total>0?Math.round(males/total*100)+"%" :"-"} color="#74B9FF"/>
+            <StatCard label="여성" value={females} sub={total>0?Math.round(females/total*100)+"%" :"-"} color="#FD79A8"/>
+          </div>
+
+          {/* 4대 분류 */}
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:14,padding:"20px 22px",marginBottom:16}}>
+            <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>4대 분류 분포</div>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+              {["ID","IS","ED","ES"].map(cat=>{
+                const names={ID:"🔥 불꽃형",IS:"🌊 물결형",ED:"⛓️ 폭풍형",ES:"🦋 안개형"};
+                const cnt=data.filter(d=>d.result&&d.result.startsWith(cat)).length;
+                const pct=total>0?Math.round(cnt/total*100):0;
+                return(
+                  <div key={cat} style={{flex:"1 1 100px",background:"rgba(255,255,255,0.03)",border:"1px solid "+(CAT_COLOR[cat]||"#fff")+"22",borderRadius:12,padding:"16px",textAlign:"center"}}>
+                    <div style={{fontSize:13,color:CAT_COLOR[cat]||"#fff",marginBottom:6}}>{names[cat]}</div>
+                    <div style={{fontSize:28,fontWeight:700,color:"#fff"}}>{cnt}</div>
+                    <div style={{fontSize:11,color:C.muted,marginTop:4}}>{pct}%</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 상위 유형 TOP 5 */}
+          <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:14,padding:"20px 22px"}}>
+            <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>인기 유형 TOP 5</div>
+            <BarChart data={typeData.slice(0,5)} colorFn={d=>CAT_COLOR[d.cat]||C.accent}/>
+          </div>
+        </div>
+      )}
+
+      {/* 유형 분포 탭 */}
+      {tab==="types"&&(
+        <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:14,padding:"20px 22px"}}>
+          <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:20}}>전체 16유형 분포</div>
+          <BarChart data={typeData} colorFn={d=>CAT_COLOR[d.cat]||C.accent}/>
+        </div>
+      )}
+
+      {/* 일별 추이 탭 */}
+      {tab==="trend"&&(
+        <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:14,padding:"20px 22px"}}>
+          <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:20}}>최근 14일 테스트 수</div>
+          <div style={{display:"flex",alignItems:"flex-end",gap:6,height:160}}>
+            {last14.map((d,i)=>(
+              <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:d.count>0?700:400}}>{d.count>0?d.count:""}</div>
+                <div style={{width:"100%",background:d.count>0?C.accent:"rgba(255,255,255,0.06)",borderRadius:"4px 4px 0 0",height:d.count>0?(Math.max(d.count/maxDay*100,8))+"%":"8%",minHeight:4,transition:"height 0.8s ease"}}/>
+                <div style={{fontSize:9,color:C.muted,whiteSpace:"nowrap"}}>{d.label.replace(". ",".")}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 원시 데이터 탭 */}
+      {tab==="raw"&&(
+        <div style={{background:C.card,border:"1px solid "+C.border,borderRadius:14,padding:"20px 22px",overflowX:"auto"}}>
+          <div style={{fontSize:11,color:C.muted,letterSpacing:2,marginBottom:16}}>최근 {recent.length}건</div>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead>
+              <tr style={{borderBottom:"1px solid rgba(255,255,255,0.07)"}}>
+                {["시각","성별","유형","4축 점수"].map(h=>(
+                  <th key={h} style={{padding:"8px 12px",textAlign:"left",color:C.muted,fontWeight:500,whiteSpace:"nowrap"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {recent.map((d,i)=>(
+                <tr key={i} style={{borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
+                  <td style={{padding:"10px 12px",color:"rgba(255,255,255,0.5)",whiteSpace:"nowrap"}}>
+                    {new Date(d.ts).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})}
+                  </td>
+                  <td style={{padding:"10px 12px",color:d.gender==="M"?"#74B9FF":"#FD79A8"}}>{d.gender==="M"?"남":"여"}</td>
+                  <td style={{padding:"10px 12px"}}>
+                    <span style={{color:CAT_COLOR[d.result?.slice(0,2)]||"#fff",fontWeight:600}}>{d.result}</span>
+                    <span style={{color:C.muted,marginLeft:8,fontSize:11}}>{T16_NAMES[d.result]||""}</span>
+                  </td>
+                  <td style={{padding:"10px 12px",color:"rgba(255,255,255,0.5)",fontFamily:"monospace"}}>
+                    {d.scores?`[${d.scores.join(", ")}]`:"—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div style={{textAlign:"center",marginTop:32,fontSize:11,color:"rgba(255,255,255,0.1)"}}>본색 관리자 · 비공개</div>
+    </div>
+  );
+}
+
+ReactDOM.render(React.createElement(App),document.getElementById("root"));
+</script>
+</body>
+</html>
