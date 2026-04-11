@@ -36,7 +36,7 @@ const {useState,useEffect,useRef,useCallback}=React;
 /* ─── SUPABASE ─── */
 const SB_URL="https://dbiazkvsfrxcauroajv.supabase.co";
 const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRiaWF6a3N2c2ZyeGNhdXJvYWp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzYxNjQsImV4cCI6MjA5MTUxMjE2NH0.bW6BtPHPziPlHThmmznoQH95LpmtvTzenkFmTzMlHlw";
-async function saveResult(data){if(!SB_URL||!SB_KEY)return;try{await fetch(SB_URL+"/rest/v1/results",{method:"POST",headers:{"apikey":SB_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({...data,ts:new Date().toISOString()})});}catch(e){console.error(e);}}
+async function saveResult(data){if(!SB_URL||!SB_KEY)return;try{await fetch(SB_URL+"/rest/v1/results",{method:"POST",headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({...data,ts:new Date().toISOString()})});}catch(e){console.error(e);}}
 
 /* ════════════════════════════════════════════════════════════════
    SHARED DATA — 16 TYPES + ALGORITHMIC COMPATIBILITY
