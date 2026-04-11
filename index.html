@@ -4,9 +4,9 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
 <title>본색 — 숨겨둔 욕망을 마주하는 시간</title>
-<meta name="description" content="18개의 질문이 당신의 성적 취향을 알려줍니다. 본색 테스트."/>
+<meta name="description" content="21개의 질문이 당신의 성적 취향을 알려줍니다. 본색 테스트."/>
 <meta property="og:title" content="본색 — 나의 숨겨진 욕망 유형은?"/>
-<meta property="og:description" content="18개의 질문. 읽는 순간 몸이 먼저 답합니다. 🔞"/>
+<meta property="og:description" content="21개의 질문. 읽는 순간 몸이 먼저 답합니다. 🔞"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css"/>
@@ -34,7 +34,8 @@ button{font-family:inherit}
 const {useState,useEffect,useRef,useCallback}=React;
 
 /* ─── SUPABASE ─── */
-const SB_URL="";const SB_KEY="";
+const SB_URL="https://dbiazkvsfrxcauroajv.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRiaWF6a3N2c2ZyeGNhdXJvYWp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzYxNjQsImV4cCI6MjA5MTUxMjE2NH0.bW6BtPHPziPlHThmmznoQH95LpmtvTzenkFmTzMlHlw";
 async function saveResult(data){if(!SB_URL||!SB_KEY)return;try{await fetch(SB_URL+"/rest/v1/results",{method:"POST",headers:{"apikey":SB_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({...data,ts:new Date().toISOString()})});}catch(e){console.error(e);}}
 
 /* ════════════════════════════════════════════════════════════════
