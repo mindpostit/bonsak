@@ -33,245 +33,97 @@ button{font-family:inherit}
 <script type="text/babel">
 const {useState,useEffect,useRef,useCallback}=React;
 
+/* ─── SUPABASE ─── */
+const SB_URL="";const SB_KEY="";
+async function saveResult(data){if(!SB_URL||!SB_KEY)return;try{await fetch(SB_URL+"/rest/v1/results",{method:"POST",headers:{"apikey":SB_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({...data,ts:new Date().toISOString()})});}catch(e){console.error(e);}}
+
 /* ════════════════════════════════════════════════════════════════
-   SHARED DATA — 32 TYPES + ALGORITHMIC COMPATIBILITY
+   SHARED DATA — 16 TYPES + ALGORITHMIC COMPATIBILITY
    ════════════════════════════════════════════════════════════════ */
 
-/* ── FULL GENDER-SEPARATED 21 QUESTIONS ── */
+/* ── GENDER-SEPARATED 20 QUESTIONS ── */
 const M_Q=[
-  // === WARM ===
-  {scene:"밤 11시. 침대에 누웠다. 눈을 감는다.",prompt:"어떤 장면이 떠오르는가?",
-   a:["여자친구가 옆에 누워있다.\n익숙한 냄새. 손이 자연스럽게 허벅지 위로 간다.",
-      "누군지 모를 여자.\n어두운 방. 얼굴은 안 보인다. 상대가 먼저 다가온다."],
-   axis:0,phase:"warm",id:"Q1"},
-  // === CORE ===
-  {scene:"금요일 밤. 단둘이 술을 마시고 있다.\n분위기가 묘하다. 상대가 네 눈을 본다.\n\"우리 여기서 나갈까?\"",
-   prompt:"당신은 어디로 가고 싶은가?",
-   a:["우리 집.\n익숙한 공간. 침대에서 천천히. 서두를 필요 없다.",
-      "아무 모텔이나.\n처음 가보는 방. 낯선 침대. 오늘만의 공간."],
-   axis:0,phase:"core",id:"S1"},
-  {scene:"문 두 개가 있다.\n\n왼쪽 — 여자친구가 속옷 차림으로 침대에 앉아있다. \"빨리 와\" 라고 말한다.\n\n오른쪽 — 처음 보는 여자가 바에서 네 허벅지에 손을 올린다. 이름도 안 물어본다.",
-   prompt:"더 흥분되는 쪽은?",a:["왼쪽","오른쪽"],axis:0,phase:"core",id:"Q2"},
-  {scene:"늦은 밤. 혼자 야동을 보고 있다.",prompt:"손이 멈추는 장면은?",
-   a:["진짜 연인처럼 보이는 두 사람.\n눈 맞추고, 속삭이고, 진짜 느끼고 있다는 게 보인다.",
-      "현실에서 절대 안 할 상황.\n금기적이고, 자극적이고, 보면 안 될 것 같은 장면."],
-   axis:0,phase:"core",id:"Q4"},
-  {scene:"섹스 중이다.\n당신이 상대의 머리카락을 움켜잡았다.\n상대의 목이 젖혀진다. 입이 벌어진다.\n상대가 올려다본다.",
-   prompt:"다음 행동은?",
-   a:["더 세게 잡는다. 고개를 돌려 입술을 가져간다.\n내가 이끈다.",
-      "손을 놓는다. 상대가 돌아서서 당신을 밀어 눕힌다.\n이번엔 상대 차례."],
-   axis:1,phase:"core",id:"Q5"},
-  {scene:"둘 다 거의 간다.",prompt:"이 순간 누가 컨트롤하고 있는가?",
-   a:["나. 속도는 내가 정한다.\n내가 멈추면 상대도 멈춰야 한다.",
-      "상대. 상대의 리듬에 맞추고 있다.\n상대가 \"아직\"이라고 하면, 기다린다."],
-   axis:1,phase:"core",id:"Q8"},
-  {scene:"두 상황.\n\nA — 상대가 옷을 벗는다. 네가 좋아하는 몸이 드러난다. 아무 말 없이 네 쪽으로 온다.\n\nB — 어두운 방. 아무것도 안 보인다. 상대가 귓가에 \"오늘 하루 종일 너 생각만 했어\" 라고 속삭인다.",
-   prompt:"더 서는 쪽은?",a:["A. 보는 것만으로 충분하다.","B. 목소리에 반응한다."],
-   axis:2,phase:"core",id:"Q9"},
-  {scene:"전희도 분위기도 없다.\n갑자기, 지금, 바로.",prompt:"그래도 할 수 있는 조건은?",
-   a:["상대 몸이 내 취향이다.\n그것만으로 된다.",
-      "직전까지 술 마시면서 깊은 대화를 했다.\n감정이 올라와 있다."],
-   axis:2,phase:"core",id:"Q10"},
-  {scene:"평범한 수요일 오후 3시. 회의 중이다.",prompt:"갑자기 야한 생각이 든 적 있는가?",
-   a:["자주. 이유 없다.\n회의 중에도, 지하철에서도. 갑자기 서기도 한다.",
-      "거의 없다.\n상대가 건드리거나, 뭔가를 봐야 올라온다."],
-   axis:3,phase:"core",id:"Q12"},
-  {scene:"여자친구가 갑자기 뒤에서 안고\n\"지금 하고 싶다\"고 한다.\n당신은 게임 중이었다.",
-   prompt:"반응은?",
-   a:["나도 하고 싶었다. 바로 돌아선다.",
-      "지금은 아닌데... 근데 몸이 느끼기 시작한다. 조금씩."],
-   axis:3,phase:"core",id:"Q14"},
-  {scene:"거의 간다. 숨이 가빠진다.\n온몸에 힘이 들어간다.",prompt:"이 순간 감각은 어디에 있는가?",
-   a:["한 곳. 거기에 모든 신경이 집중된다.\n거기서 터진다.",
-      "모르겠다. 온몸이 동시에 울린다.\n어디서 시작된 건지 구분이 안 된다."],
-   axis:4,phase:"core",id:"Q15"},
-  {scene:"두 종류의 밤.\n\n밤 A — 한 가지 체위. 안 바꾼다. 대신 속도, 깊이, 강도를 끝까지 올린다.\n\n밤 B — 쉬지 않는다. 체위 바꾸고, 장소 옮기고, 이것저것 한다. 끝날 때쯤 둘 다 녹아있다.",
-   prompt:"끝나고 더 만족스러운 밤은?",a:["밤 A","밤 B"],axis:4,phase:"core",id:"Q16"},
-  // === DEEP ===
-  {scene:"여행지. 호텔 방.\n샤워하고 나왔더니 상대가 침대에 앉아서 당신을 보고 있다.\n\"오늘 밤은 좀 다르게 해볼까?\"",
-   prompt:"네 대답은?",
-   a:["\"좋아. 내가 할게.\"\n상대를 눕히고, 오늘은 내가 전부 정한다.",
-      "\"그래. 당신이 해봐.\"\n뒤로 기대고, 상대가 뭘 할지 지켜본다."],
-   axis:1,phase:"deep",id:"S2"},
-  {scene:"가장 야한 상상을 떠올려봐.",prompt:"그 상상 속 상대는?",
-   a:["내가 아는 여자.\n이름을 부르고, 눈을 보고, 끝나고 안아줄 수 있는 사이.",
-      "아무도 아닌 여자.\n이름도 없다. 내일도 없다. 오직 지금 이 몸뚱이만 있다."],
-   axis:0,phase:"deep",id:"Q3"},
-  {scene:"상대가 귓가에 말한다.\n\n\"오늘은 네가 정해. 나한테 뭘 해도 돼.\"\n\"오늘은 내가 할게. 넌 가만히 있어.\"",
-   prompt:"솔직하게. 더 딱딱해지는 말은?",
-   a:["첫 번째.\n내가 하고 싶은 대로 한다는 게 흥분된다.",
-      "두 번째.\n상대가 알아서 한다는 게 흥분된다."],
-   axis:1,phase:"deep",id:"Q6"},
-  {scene:"침대 옆에 부드러운 끈이 있다.\n당신이 그걸 집어 들었다.",prompt:"누구의 손목을 묶는가?",
-   a:["상대의 손목.\n내가 천천히 감는다. 상대의 눈이 커진다.",
-      "나의 손목.\n상대가 단단히 묶는다. 나는 움직일 수 없다."],
-   axis:1,phase:"deep",id:"Q7"},
-  {scene:"야동을 보고 있다.",prompt:"가장 세게 반응하는 순간은?",
-   a:["클로즈업. 직접적인 행위가 보인다.\n신체 부위가 화면을 채운다.",
-      "두 사람 사이에 스토리가 있다.\n\"하면 안 되는데\" 같은 긴장감. 눈빛."],
-   axis:2,phase:"deep",id:"Q11"},
-  {scene:"혼자다. 아무도 없다.",prompt:"손이 내려가는 건 보통 언제인가?",
-   a:["이유 없다. 몸이 원할 때.\n특별한 자극 없이도 시작한다.",
-      "뭔가를 봤을 때.\n영상, 사진, 기억. 자극이 있어야 시작된다."],
-   axis:3,phase:"deep",id:"Q13"},
-  {scene:"한 시간이 주어졌다.\n상대가 뭐든 해준다고 했다.",prompt:"뭘 고르겠는가?",
-   a:["한 가지만. 한 시간 내내.\n오럴이면 오럴만. 끝까지.",
-      "전부.\n눈 가리고, 귓속말하고, 얼음 굴리고, 깃털로 쓸고.\n온몸 전부."],
-   axis:4,phase:"deep",id:"Q17"},
-  {scene:"불 꺼진 방. 둘 다 벗고 있다.\n상대가 \"눈 감아\" 라고 한다.\n무언가가 배 위에 닿는다 — 뭔지 모르겠다.\n차갑다. 천천히 아래로 내려간다.",
-   prompt:"당신은 어떻게 하겠는가?",
-   a:["\"거기. 거기서 멈춰.\"\n그 한 지점에 집중하게 만든다. 다른 건 필요 없다.",
-      "\"계속 해. 다른 것도.\"\n온몸 전체를 느끼고 싶다. 한 곳에 머물지 마."],
-   axis:4,phase:"deep",id:"S3"},
-  // === LAST ===
-  {scene:"끝났다. 숨을 고르고 있다. 천장을 본다.",prompt:"내일까지 남아있을 건?",
-   a:["몸이 기억한다.\n근육의 떨림, 허벅지의 감각, 쾌감의 잔상이 물리적으로 남아있다.",
-      "마음이 기억한다.\n상대의 눈빛, 목소리, 연결된 느낌이 감정으로 남아있다."],
-   axis:2,phase:"last",id:"Q18"},
+  {id:"Q1",phase:"warm",axis:0,scene:"밤 11시. 침대에 누웠다. 눈을 감는다.",prompt:"어떤 장면이 떠오르는가?",a:["여자친구가 옆에 누워있다.\n익숙한 냄새. 손이 자연스럽게 허벅지 위로 간다.","누군지 모를 여자.\n어두운 방. 얼굴은 안 보인다. 상대가 먼저 다가온다."]},
+  {id:"S1",phase:"core",axis:0,scene:"머릿속으로 가장 자주 가는 장면이 있다.",prompt:"그 장면의 설정은?",a:["특별할 것 없다. 좋아하는 사람, 둘만 있는 공간.\n근데 거기서 뭔가가 터진다.","현실에선 절대 없을 상황.\n설정 자체가 금기적이다. 그게 핵심이다."]},
+  {id:"Q5",phase:"core",axis:1,scene:"섹스 중이다.\n당신이 상대의 머리카락을 움켜잡았다.\n상대의 목이 젖혀진다. 입이 벌어진다.",prompt:"다음 행동은?",a:["더 세게 잡는다. 고개를 돌려 입술을 가져간다.\n내가 이끈다.","손을 놓는다. 상대가 돌아서서 당신을 밀어 눕힌다.\n이번엔 상대 차례."]},
+  {id:"Q9",phase:"core",axis:2,scene:"두 상황.\n\nA — 상대가 옷을 벗는다. 당신이 좋아하는 몸이 드러난다.\n\nB — 어두운 방. 상대가 귓가에 \"오늘 하루 종일 당신 생각만 했어\" 라고 속삭인다.",prompt:"더 서는 쪽은?",a:["A. 보는 것만으로 충분하다.","B. 목소리에 반응한다."]},
+  {id:"Q15",phase:"core",axis:3,scene:"상대가 당신 몸을 만지고 있다. 여러 곳이 동시에 자극된다.",prompt:"더 강하게 느껴지는 건?",a:["한 곳에 집중할 때.\n나머지를 다 잊고 거기에만 있을 때 극대화된다.","동시에 여러 곳일 때.\n어디서 오는지 모를 감각들이 겹칠 때 더 미친다."]},
+  {id:"Q2",phase:"core",axis:0,scene:"야동을 보다가 \"이건 좀 선 넘는다\" 싶은 장르가 나왔다.",prompt:"솔직하게. 반응은?",a:["끄거나 넘긴다.\n그런 건 흥분보다 불편함이 먼저다.","손을 멈춘다.\n보면 안 될 것 같은데, 그래서 더 보게 된다."]},
+  {id:"Q8",phase:"core",axis:1,scene:"둘 다 거의 간다.",prompt:"이 순간 누가 컨트롤하고 있는가?",a:["나. 속도는 내가 정한다.\n내가 멈추면 상대도 멈춰야 한다.","상대. 상대의 리듬에 맞추고 있다.\n상대가 \"아직\"이라고 하면, 기다린다."]},
+  {id:"QT2",phase:"core",axis:2,scene:"혼자다. 아무도 없다. 특별한 일도 없었다.",prompt:"성적인 생각이 드는 건?",a:["이유 없다. 그냥 몸이 원한다.\n아무 자극 없이도.","뭔가를 봤거나, 누가 건드렸거나.\n자극이 있어야 시작된다."]},
+  {id:"Q16",phase:"core",axis:3,scene:"두 종류의 밤.\n\n밤 A — 한 가지 체위. 안 바꾼다. 대신 속도, 깊이, 강도를 끝까지 올린다.\n\n밤 B — 쉬지 않는다. 체위 바꾸고, 장소 옮기고. 끝날 때쯤 둘 다 녹아있다.",prompt:"끝나고 더 만족스러운 밤은?",a:["밤 A","밤 B"]},
+  {id:"Q10",phase:"core",axis:2,scene:"전희도 분위기도 없다.\n갑자기, 지금, 바로.",prompt:"그래도 할 수 있는 조건은?",a:["상대 몸이 내 취향이다.\n그것만으로 된다.","직전까지 깊은 대화를 했다.\n감정이 올라와 있다."]},
+  {id:"QT4",phase:"core",axis:2,scene:"상대가 갑자기 뒤에서 안고\n\"지금 하고 싶다\"고 한다.\n당신은 다른 걸 하고 있었다.",prompt:"반응은?",a:["나도 하고 싶었다. 바로 돌아선다.","지금은 아닌데... 근데 몸이 느끼기 시작한다. 조금씩."]},
+  {id:"QN5",phase:"core",axis:3,scene:"전희가 시작됐다. 상대가 당신의 몸을 탐색하고 있다.",prompt:"더 좋은 건?",a:["한 곳을 정해서 끝까지.\n분산되면 집중이 깨진다.","여기저기.\n예측 못 한 곳에서 자극이 올 때 더 미친다."]},
+  {id:"S2",phase:"deep",axis:1,scene:"여행지. 호텔 방.\n샤워하고 나왔더니 상대가 침대에 앉아서 당신을 보고 있다.\n\"오늘 밤은 좀 다르게 해볼까?\"",prompt:"당신의 대답은?",a:["\"좋아. 내가 할게.\"\n상대를 눕히고, 오늘은 내가 전부 정한다.","\"그래. 당신이 해봐.\"\n뒤로 기대고, 상대가 뭘 할지 지켜본다."]},
+  {id:"Q3",phase:"deep",axis:0,scene:"상대가 묻는다. \"가장 해보고 싶은 거 말해봐.\"",prompt:"당신이 떠올리는 건?",a:["말할 수 있는 것들이다.\n상대가 들어도 이상하지 않을, 둘이 같이 즐길 수 있는 것.","말하기 전에 망설인다.\n상대가 어떻게 받아들일지 모른다. 그 망설임이 있는 것들이다."]},
+  {id:"Q6",phase:"deep",axis:1,scene:"섹스 중이다. 상대가 당신을 올려다보고 있다.",prompt:"그 눈빛에서 원하는 건?",a:["내가 무너뜨리고 있다는 것.\n상대가 더 이상 버티지 못하는 순간을 보고 싶다.","상대가 나를 무너뜨리고 있다는 것.\n내가 더 이상 버틸 수 없는 순간이 오길 기다린다."]},
+  {id:"Q4",phase:"deep",axis:0,scene:"늦은 밤. 혼자 야동을 보고 있다.",prompt:"손이 멈추는 장면은?",a:["진짜 연인처럼 보이는 두 사람.\n눈 맞추고, 속삭이고, 진짜 느끼고 있다는 게 보인다.","현실에서 절대 안 할 상황.\n금기적이고, 자극적이고, 보면 안 될 것 같은 장면."]},
+  {id:"Q7",phase:"deep",axis:1,scene:"침대 옆에 부드러운 끈이 있다.\n당신이 그걸 집어 들었다.",prompt:"누구의 손목을 묶는가?",a:["상대의 손목.\n내가 천천히 감는다. 상대의 눈이 커진다.","나의 손목.\n상대가 단단히 묶는다. 나는 움직일 수 없다."]},
+  {id:"Q11",phase:"deep",axis:2,scene:"야동을 보고 있다.",prompt:"가장 세게 반응하는 순간은?",a:["클로즈업. 직접적인 행위가 보인다.\n신체 부위가 화면을 채운다.","두 사람 사이에 스토리가 있다.\n\"하면 안 되는데\" 같은 긴장감. 눈빛."]},
+  {id:"Q17",phase:"deep",axis:3,scene:"한 시간이 주어졌다.\n상대가 뭐든 해준다고 했다.",prompt:"뭘 고르겠는가?",a:["한 가지만. 한 시간 내내.\n오럴이면 오럴만. 끝까지.","전부.\n눈 가리고, 귓속말하고, 얼음 굴리고, 깃털로 쓸고.\n온몸 전부."]},
+  {id:"S3",phase:"deep",axis:3,scene:"불 꺼진 방. 둘 다 벗고 있다.\n상대가 \"눈 감아\" 라고 한다.\n무언가가 배 위에 닿는다. 차갑다. 천천히 아래로 내려간다.",prompt:"당신은?",a:["\"거기. 거기서 멈춰.\"\n그 한 지점에 집중하게 만든다.","\"계속 해. 다른 것도.\"\n온몸 전체를 느끼고 싶다."]},
+  {id:"QL",phase:"last",axis:2,scene:"끝났다. 상대가 옆에 있다.\n아무 말 없다. 숨만 들린다.",prompt:"이 순간 당신 안에서 올라오는 건?",a:["몸의 여운.\n아직 피부에 남아있는 감각, 근육의 떨림.","감정의 파도.\n이 사람이 좋다, 고맙다, 혹은 허전하다."]}
 ];
 
 const F_Q=[
-  // === WARM ===
-  {scene:"밤 11시. 이불 속에서 눈을 감았다.",
-   a:["연인의 체온이 등 뒤에서 느껴진다.\n익숙한 향. 천천히 목 뒤로 입술이 내려온다.",
-      "낯선 공간. 낯선 손.\n이름도 얼굴도 모르는 사람의 손끝이 허리를 감싼다."],
-   axis:0,phase:"warm",id:"Q1"},
-  // === CORE ===
-  {scene:"금요일 밤. 카페에서 단둘이 앉아있다.\n대화가 점점 깊어진다. 상대의 눈이 입술에 머문다.\n돌아가는 길, 상대가 손을 잡는다.",
-   prompt:"이 밤이 어디로 이어지길 바라는가?",
-   a:["집.\n익숙한 공간에서, 천천히, 자연스럽게.",
-      "어디든 지금 가장 가까운 곳.\n이 긴장감이 깨지기 전에."],
-   axis:0,phase:"core",id:"S1"},
-  {scene:"두 개의 문.\n\n왼쪽 — 사랑하는 사람이 촛불을 켜고 기다리고 있다.\n\n오른쪽 — 처음 보는 사람이 이름도 묻지 않고 벽에 밀어붙인다. 숨소리만 들린다.",
-   prompt:"심장이 더 빨라지는 문은?",a:["왼쪽","오른쪽"],axis:0,phase:"core",id:"Q2"},
-  {scene:"늦은 밤. 혼자 야한 소설을 읽고 있다.",prompt:"페이지를 넘기는 손을 멈출 수 없는 건\n어떤 이야기?",
-   a:["두 사람의 감정이 천천히 쌓이다가\n참을 수 없는 순간에 터지는 이야기.",
-      "상상도 못 한 설정.\n위험하고 금기적인데, 읽는 내내 심장이 뛴다."],
-   axis:0,phase:"core",id:"Q4"},
-  {scene:"상대의 손이 갑자기 머리카락을 움켜잡았다.\n목이 뒤로 젖혀진다.\n귓가에 거친 숨소리가 닿는다.",
-   prompt:"이 순간, 몸의 반응은?",
-   a:["그 손목을 잡고 돌아선다.\n밀어 눕힌다. 이번엔 내 차례.",
-      "온몸에 전류가 흐른다.\n목이 젖혀진 채로 눈을 감는다. 더."],
-   axis:1,phase:"core",id:"Q5"},
-  {scene:"둘 다 거의 절정에 가깝다.",prompt:"이 순간, 당신의 역할은?",
-   a:["내가 속도를 정한다.\n내가 멈추면 상대도 멈춰야 한다.",
-      "상대의 리듬에 맡기고 있다.\n상대가 이끄는 대로 따라간다."],
-   axis:1,phase:"core",id:"Q8"},
-  {scene:"두 가지 순간.\n\n순간 A — 상대가 천천히 옷을 벗는다. 조명 아래서 당신이 좋아하는 몸이 드러난다.\n\n순간 B — 어두운 방. 아무것도 보이지 않는다. \"오늘 하루 종일 너 생각만 했어.\" 따뜻한 숨결이 목에 닿는다.",
-   prompt:"몸이 먼저 반응하는 건?",a:["순간 A","순간 B"],axis:2,phase:"core",id:"Q9"},
-  {scene:"전희도 분위기도 없다.\n갑자기, 지금, 바로.",prompt:"그래도 흥분될 수 있는 조건은?",
-   a:["상대의 몸이 내 취향이다.\n그것만으로 충분하다.",
-      "직전까지 깊은 대화를 나눴다.\n감정이 극한까지 올라와 있다."],
-   axis:2,phase:"core",id:"Q10"},
-  {scene:"평범한 수요일 오후 3시.\n일을 하고 있다.",prompt:"갑자기 성적인 생각이 떠오른 적이 있는가?",
-   a:["자주 있다. 이유 없이.\n샤워 중에, 지하철에서, 갑자기 몸이 반응한다.",
-      "거의 없다.\n누군가의 터치, 향수 냄새, 분위기가 만들어져야 올라온다."],
-   axis:3,phase:"core",id:"Q12"},
-  {scene:"연인이 갑자기 허리를 뒤에서 안고\n\"지금 하고 싶다\"고 속삭인다.\n다른 일을 하고 있었다.",
-   prompt:"몸의 반응은?",
-   a:["사실 나도 하고 싶었다.\n바로 돌아선다.",
-      "지금은 아닌데...\n하지만 허리를 감싼 팔의 온기가 느껴진다.\n조금씩. 천천히."],
-   axis:3,phase:"core",id:"Q14"},
-  {scene:"절정 직전이다.\n숨이 가빠지고, 온몸에 힘이 들어간다.",prompt:"이 순간, 감각은 어디에 있는가?",
-   a:["한 곳. 모든 신경이 한 지점으로 모인다.\n그곳에서 폭발이 시작된다.",
-      "어디서 시작됐는지 모르겠다.\n온몸이 동시에 울린다. 파도처럼 퍼진다."],
-   axis:4,phase:"core",id:"Q15"},
-  {scene:"두 종류의 밤.\n\n밤 A — 한 가지 체위. 바꾸지 않는다. 그 안에서 깊이와 강도를 극한까지 올린다.\n\n밤 B — 멈추지 않는다. 체위를 바꾸고, 장소를 옮기고, 끝날 때쯤 온몸이 녹아있다.",
-   prompt:"끝나고 나서 더 만족스러운 밤은?",a:["밤 A","밤 B"],axis:4,phase:"core",id:"Q16"},
-  // === DEEP ===
-  {scene:"여행지. 호텔 방. 창밖에 낯선 도시의 불빛.\n샤워를 마치고 나왔다.\n상대가 침대 끝에 앉아 당신을 올려다본다.\n\"오늘은 좀 다르게 해볼까?\"",
-   prompt:"이 순간, 안에서 올라오는 건?",
-   a:["\"내가 이끌어볼까.\"\n타올을 벗으며, 상대 쪽으로 걸어간다.",
-      "\"뭘 할 건데?\"\n목소리가 작아진다. 기대가 몸을 타고 올라온다."],
-   axis:1,phase:"deep",id:"S2"},
-  {scene:"가장 은밀한 판타지를 꺼내보세요.",prompt:"그 장면 속 상대와 나의 관계는?",
-   a:["서로를 깊이 아는 사이.\n이름을 부르고, \"사랑해\"라고 말할 수 있는 관계.",
-      "서로에 대해 아무것도 모르는 사이.\n이름도 없고, 내일도 없다. 오직 이 순간만 존재한다."],
-   axis:0,phase:"deep",id:"Q3"},
-  {scene:"상대가 귀에 속삭인다.\n\n\"오늘은 내가 정한다. 넌 가만히 있어.\"\n\"오늘 네 맘대로 해. 뭘 해도 좋아.\"",
-   prompt:"하고 싶은 말이 아니라,\n들었을 때 더 반응하는 말은?",
-   a:["두 번째.\n내가 주도한다는 게 흥분된다.",
-      "첫 번째.\n상대에게 맡긴다는 게 흥분된다."],
-   axis:1,phase:"deep",id:"Q6"},
-  {scene:"상대가 당신 위에 있다.\n양 손목을 한 손으로 잡고 머리 위로 눌렀다.\n움직일 수 없다.\n상대의 눈이 내려다보고 있다.",
-   prompt:"이 순간, 당신은?",
-   a:["손을 빼낸다. 밀어 뒤집고,\n내가 위에서 상대의 손목을 잡는다.",
-      "잡힌 채로 올려본다.\n입술이 벌어진다. 힘을 뺀다."],
-   axis:1,phase:"deep",id:"Q7"},
-  {scene:"지금까지 가장 강하게 흥분했던 순간을 떠올려보세요.\n아무도 모르는 기억.",
-   prompt:"그 순간을 촉발한 건?",
-   a:["상대의 몸, 표정, 행위 —\n무언가를 보거나 느꼈을 때.",
-      "상대와의 감정, 분위기, 말 —\n마음이 먼저 반응했을 때."],
-   axis:2,phase:"deep",id:"Q11"},
-  {scene:"혼자 있는 밤.",prompt:"성적인 상상이 떠오르는 건\n보통 어떤 경우?",
-   a:["갑자기. 아무 이유 없이.\n샤워 중에, 잠들기 전에, 몸이 먼저 신호를 보낸다.",
-      "무언가를 접하고 나서.\n소설, 영상, 누군가의 향수 냄새, 옛 기억. 트리거가 있다."],
-   axis:3,phase:"deep",id:"Q13"},
-  {scene:"한 시간이 주어졌다.\n상대는 뭐든 해주겠다고 했다.",prompt:"어떤 경험을 고르겠는가?",
-   a:["한 가지. 오직 한 가지만.\n한 시간 내내 한 부위만. 끝까지.",
-      "전부.\n눈을 가리고, 귓속말을 하고, 얼음을 굴리고, 깃털로 쓸고.\n온몸의 모든 감각을 동시에."],
-   axis:4,phase:"deep",id:"Q17"},
-  {scene:"불 꺼진 방. 눈을 감았다.\n상대가 뭔가로 배 위를 천천히 쓸어내린다.\n뭔지 모르겠다. 차갑다.\n숨이 멈춘다. 천천히 아래로 내려간다.",
-   prompt:"이 순간, 몸이 원하는 건?",
-   a:["\"거기. 그 지점에서 멈춰.\"\n한 곳에 모든 감각이 모인다. 그곳에서 끝까지.",
-      "\"계속. 다른 곳도.\"\n등으로, 허벅지로, 온몸으로 퍼져나가길 원한다."],
-   axis:4,phase:"deep",id:"S3"},
-  // === LAST ===
-  {scene:"지금 막 끝났다.\n숨을 고르고 있다. 천장을 바라본다.",prompt:"내일까지 남아있을 건?",
-   a:["몸이 기억한다.\n피부의 감각, 근육의 떨림, 쾌감의 잔상이 물리적으로 남아있다.",
-      "마음이 기억한다.\n상대의 눈빛, 속삭임, 연결된 느낌이 감정으로 남아있다."],
-   axis:2,phase:"last",id:"Q18"},
+  {id:"Q1",phase:"warm",axis:0,scene:"밤 11시. 이불 속에서 눈을 감았다.",prompt:"어떤 장면이 떠오르는가?",a:["연인의 체온이 등 뒤에서 느껴진다.\n익숙한 향. 천천히 목 뒤로 입술이 내려온다.","낯선 공간. 낯선 손.\n이름도 얼굴도 모르는 사람의 손끝이 허리를 감싼다."]},
+  {id:"S1",phase:"core",axis:0,scene:"혼자 상상할 때 자주 꺼내는 장면이 있다.",prompt:"그 장면의 배경은?",a:["사랑하는 사람과 둘만 있는 공간.\n특별한 설정 없이도 충분히 뜨겁다.","현실에서 절대 일어날 수 없는 상황.\n금기적인 설정 그 자체가 흥분의 이유다."]},
+  {id:"Q5",phase:"core",axis:1,scene:"상대의 손이 갑자기 머리카락을 움켜잡았다.\n목이 뒤로 젖혀진다.\n귓가에 거친 숨소리가 닿는다.",prompt:"이 순간, 몸의 반응은?",a:["그 손목을 잡고 돌아선다.\n밀어 눕힌다. 이번엔 내 차례.","온몸에 전류가 흐른다.\n목이 젖혀진 채로 눈을 감는다. 더."]},
+  {id:"Q9",phase:"core",axis:2,scene:"두 가지 순간.\n\n순간 A — 상대가 천천히 옷을 벗는다. 당신이 좋아하는 몸이 드러난다.\n\n순간 B — 어두운 방. \"오늘 하루 종일 너 생각만 했어.\" 따뜻한 숨결이 목에 닿는다.",prompt:"몸이 먼저 반응하는 건?",a:["순간 A","순간 B"]},
+  {id:"Q15",phase:"core",axis:3,scene:"상대의 손이 여러 곳을 동시에 건드리고 있다.",prompt:"더 깊이 느껴지는 건?",a:["한 곳에만 있을 때.\n나머지가 사라지고 거기에만 집중될 때 가장 강해진다.","동시에 여러 곳일 때.\n어디서 오는지 모를 감각들이 겹쳐질 때 온몸이 열린다."]},
+  {id:"Q2",phase:"core",axis:0,scene:"야한 소설을 읽다가 \"이건 좀 위험한 내용이다\" 싶은 장면이 나왔다.",prompt:"솔직하게. 반응은?",a:["페이지를 넘긴다.\n불편함이 흥분보다 크다.","손이 멈춘다.\n읽으면 안 될 것 같은데, 그래서 더 읽게 된다."]},
+  {id:"Q8",phase:"core",axis:1,scene:"둘 다 거의 절정에 가깝다.",prompt:"이 순간, 당신의 역할은?",a:["내가 속도를 정한다.\n내가 멈추면 상대도 멈춰야 한다.","상대의 리듬에 맡기고 있다.\n상대가 이끄는 대로 따라간다."]},
+  {id:"QT2",phase:"core",axis:2,scene:"아무것도 없는 평범한 날.",prompt:"성적인 감각이 올라오는 건 보통 언제?",a:["갑자기. 이유가 없다.\n샤워 중에, 잠들기 전에. 몸이 먼저 신호를 보낸다.","무언가를 접하고 나서.\n소설, 기억, 향수 냄새. 트리거가 있어야 올라온다."]},
+  {id:"Q16",phase:"core",axis:3,scene:"두 종류의 밤.\n\n밤 A — 한 가지 체위. 바꾸지 않는다. 그 안에서 깊이와 강도를 극한까지 올린다.\n\n밤 B — 멈추지 않는다. 체위를 바꾸고, 장소를 옮기고, 끝날 때쯤 온몸이 녹아있다.",prompt:"끝나고 나서 더 만족스러운 밤은?",a:["밤 A","밤 B"]},
+  {id:"Q10",phase:"core",axis:2,scene:"아무 준비도 없다. 분위기도 없다. 갑자기.",prompt:"그래도 흥분될 수 있는 조건은?",a:["상대의 몸이 내 취향이다.\n그것만으로 충분하다.","직전까지 감정이 극한까지 쌓여 있었다.\n말 한마디가 불씨가 된다."]},
+  {id:"QT4",phase:"core",axis:2,scene:"연인이 허리를 뒤에서 안는다.\n\"지금 하고 싶다\"고 속삭인다.\n다른 일을 하고 있었다.",prompt:"몸의 반응은?",a:["사실 나도 하고 싶었다.\n바로 돌아선다.","지금은 아닌데...\n팔의 온기가 느껴진다. 천천히. 조금씩."]},
+  {id:"QN5",phase:"core",axis:3,scene:"전희 중이다. 상대의 손이 몸을 돌아다니고 있다.",prompt:"몸이 원하는 건?",a:["한 곳에 계속 있어줘.\n거기서 끝까지 올려.","더 돌아다녀.\n예측 못 하는 곳에서 닿을 때가 더 좋아."]},
+  {id:"S2",phase:"deep",axis:1,scene:"여행지. 호텔 방. 창밖에 낯선 도시의 불빛.\n샤워를 마치고 나왔다.\n상대가 침대 끝에 앉아 당신을 올려다본다.\n\"오늘은 좀 다르게 해볼까?\"",prompt:"이 순간, 안에서 올라오는 건?",a:["\"내가 이끌어볼까.\"\n타올을 벗으며 상대 쪽으로 걸어간다.","\"뭘 할 건데?\"\n목소리가 작아진다. 기대가 몸을 타고 올라온다."]},
+  {id:"Q3",phase:"deep",axis:0,scene:"상대가 묻는다. \"진짜로 해보고 싶은 거 말해봐.\"",prompt:"당신이 떠올리는 건?",a:["말할 수 있는 것들이다.\n상대가 들어도 괜찮을, 함께 나눌 수 있는 것.","입 밖에 내기 전에 멈춘다.\n이걸 말해도 될까. 그 경계에 있는 것들이다."]},
+  {id:"Q6",phase:"deep",axis:1,scene:"섹스 중이다. 상대의 눈이 당신을 내려다보고 있다.",prompt:"그 눈빛에서 원하는 건?",a:["내가 상대를 무너뜨리고 있다는 것.\n상대가 참을 수 없어지는 순간을 만들고 싶다.","상대가 나를 무너뜨리고 있다는 것.\n더 이상 버틸 수 없어지는 그 순간을 원한다."]},
+  {id:"Q4",phase:"deep",axis:0,scene:"늦은 밤. 혼자 야한 소설을 읽고 있다.",prompt:"페이지를 넘기는 손을 멈출 수 없는 건\n어떤 이야기?",a:["두 사람의 감정이 천천히 쌓이다가\n참을 수 없는 순간에 터지는 이야기.","상상도 못 한 설정.\n위험하고 금기적인데, 읽는 내내 심장이 뛴다."]},
+  {id:"Q7",phase:"deep",axis:1,scene:"상대가 당신 위에 있다.\n양 손목을 한 손으로 잡고 머리 위로 눌렀다.\n움직일 수 없다.",prompt:"이 순간, 당신은?",a:["손을 빼낸다. 밀어 뒤집고,\n내가 위에서 상대의 손목을 잡는다.","잡힌 채로 올려본다.\n입술이 벌어진다. 힘을 뺀다."]},
+  {id:"Q11",phase:"deep",axis:2,scene:"지금까지 가장 강하게 흥분했던 순간을 떠올려보세요.",prompt:"그 순간을 촉발한 건?",a:["상대의 몸, 표정, 행위 —\n무언가를 보거나 느꼈을 때.","상대와의 감정, 분위기, 말 —\n마음이 먼저 반응했을 때."]},
+  {id:"Q17",phase:"deep",axis:3,scene:"한 시간이 주어졌다.\n상대는 뭐든 해주겠다고 했다.",prompt:"어떤 경험을 고르겠는가?",a:["한 가지. 오직 한 가지만.\n한 시간 내내 한 부위만. 끝까지.","전부.\n눈을 가리고, 귓속말을 하고, 얼음을 굴리고.\n온몸의 모든 감각을 동시에."]},
+  {id:"S3",phase:"deep",axis:3,scene:"불 꺼진 방. 눈을 감았다.\n상대가 뭔가로 배 위를 천천히 쓸어내린다.\n차갑다. 천천히 아래로 내려간다.",prompt:"몸이 원하는 건?",a:["\"거기. 그 지점에서 멈춰.\"\n한 곳에 모든 감각이 모인다.","\"계속. 다른 곳도.\"\n온몸으로 퍼져나가길 원한다."]},
+  {id:"QL",phase:"last",axis:2,scene:"끝났다. 상대 옆에 누워있다.\n천장을 본다. 아직 숨이 고르지 않다.",prompt:"이 순간 안에서 올라오는 건?",a:["몸의 여운.\n피부에 남은 온기, 감각의 잔상.","감정의 파도.\n이 사람이 좋다, 보고 싶었다, 혹은 갑자기 눈물이 날 것 같다."]}
 ];
+
 
 function buildQ(g){return g==="F"?F_Q:M_Q;}
 
-const AXIS_META=[{l:"친밀",r:"탐험",max:5},{l:"주도",r:"수용",max:5},{l:"신체",r:"감정",max:4},{l:"자발",r:"반응",max:3},{l:"집중",r:"확산",max:4}];
+const AXIS_META=[{l:"친밀",r:"탐험",max:5},{l:"주도",r:"수용",max:5},{l:"신체",r:"감정",max:5},{l:"집중",r:"확산",max:5}];
 
 /* ── 4 CATEGORIES ── */
 const CAT={ID:{name:"불꽃형",emoji:"🔥",desc:"사랑하는 사람을 내 방식으로"},IS:{name:"물결형",emoji:"🌊",desc:"사랑하는 사람에게 맡기는"},ED:{name:"폭풍형",emoji:"⛓️",desc:"금기를 내가 이끄는"},ES:{name:"안개형",emoji:"🦋",desc:"금기 속에서 빠져드는"}};
 function getCat(code){return CAT[code.slice(0,2)]||CAT.ID;}
 
-/* ── 32 TYPES ── */
+/* ── 16 TYPES ── */
 const T32={
-IDPFN:{name:"육식동물",emoji:"🔥",sub:"본능이 먼저, 머리는 나중",color:"#E84393",desc:"당신은 생각보다 몸이 빠릅니다. 좋아하는 사람 앞에서 참는 게 더 어려운 타입. 섹스에서 자연스럽게 주도하고, 한 곳을 정하면 거기서 끝까지 밀어붙입니다. 상대가 반응하면 더 세지고, 안 하면 흥미를 잃어요.",kink:"거친 전희 · 체위 고정 · 목 잡기 · 핀업 · 강한 리드",pop:6},
-IDPFW:{name:"문어",emoji:"🌋",sub:"한 곳에 만족 못 해. 전부 만져야 해",color:"#E17055",desc:"머리카락부터 발끝까지, 가능한 모든 곳을 만지고 키스하고 느끼고 싶어합니다. 한 체위로 끝나는 법이 없고, 끝나고 나면 둘 다 녹아있어요. 연인이 '힘들다'고 먼저 말하는 경우가 많습니다.",kink:"전신 탐색 · 다양한 체위 · 긴 섹스 · 정열적 키스 · 사후 애무",pop:5},
-IDPRN:{name:"슬로우킬러",emoji:"🕯️",sub:"급하지 않아. 근데 끝까지 가",color:"#FDCB6E",desc:"몸에서 시작되지만 절대 서두르지 않는 타입. 상대의 반응을 읽으면서 천천히 올리고, 한번 잡으면 한 곳에서 끝까지 집중합니다. 상대를 천천히 한계까지 끌어올리는 과정 자체가 쾌감이에요.",kink:"느린 에스컬레이션 · 반응 읽기 · 한 곳 집중 · 끝까지 유지 · 여운",pop:3},
-IDPRW:{name:"뒤끝작렬",emoji:"⛈️",sub:"평소엔 잠잠한데, 스위치 켜지면 끝장",color:"#74B9FF",desc:"처음에는 상대의 터치에 반응하면서 서서히 올라옵니다. 근데 어느 순간 스위치가 켜져요. 갑자기 강도가 바뀌고, 상대의 온몸을 공략하기 시작합니다. '오늘 왜 이래?' 를 제일 많이 듣는 타입.",kink:"갑작스러운 전환 · 강약 조절 · 전신 공략 · 예측 불가 · 폭풍 전야",pop:3},
-IDMFN:{name:"심장도둑",emoji:"🔗",sub:"감정 없으면 안 서. 진심이어야 해",color:"#0984E3",desc:"사랑한다는 감정이 곧 욕망으로 직결되는 타입. 섹스 중에도 눈을 맞추고 이름을 부릅니다. 한 가지 행위에 깊이 몰입하는 스타일. 원나잇? 물리적으로 불가능합니다.",kink:"아이 컨택트 · 이름 부르기 · 느린 침투 · 감정 몰입 · 깊은 키스",pop:4},
-IDMFW:{name:"풀코스",emoji:"🛡️",sub:"네가 좋아하는 거 다 해줄게. 한 곳도 안 빠뜨려",color:"#0984E3",desc:"상대의 쾌감을 설계하는 데서 흥분하는 타입. '여기 좋아?' 를 가장 많이 물어보고, 상대의 반응에 따라 루트를 바꿉니다. 상대의 무반응이 가장 큰 킬러.",kink:"긴 전희 · 풀바디 마사지 · 상대 중심 · 귓속말 · 사후 포옹",pop:4},
-IDMRN:{name:"한마디충",emoji:"🤫",sub:"말 한마디로 분위기 바꿔버리는 타입",color:"#636E72",desc:"가장 조용한 주도형. 말보다 행동, 행동보다 호흡으로 소통합니다. 근데 가끔 한마디 던질 때가 있어요. 그 한마디가 상대를 무너뜨립니다. 속삭이듯 말하는데, 내용은 전혀 속삭일 게 아닌.",kink:"호흡 리드 · 속삭임 · 느린 주도 · 극도의 집중 · 침묵의 지배",pop:2},
-IDMRW:{name:"분위기깡패",emoji:"✨",sub:"조명, 음악, 대화, 그리고 마지막에 터치",color:"#FDCB6E",desc:"감정이 충분히 올라와야 시작하는데, 일단 시작하면 주도적이고 온몸으로 이끕니다. 분위기를 만드는 천재. 섹스 전 2시간짜리 대화가 이 사람에겐 전희입니다.",kink:"분위기 설계 · 감정적 점화 · 전신 터치 · 긴 전희 · 여운",pop:3},
-ISPFN:{name:"겉바속불",emoji:"🕯️",sub:"겉은 얌전. 속은 타고 있어",color:"#E17055",desc:"겉으로는 성적 관심이 없어 보입니다. 근데 친밀한 관계에서, 상대가 리드할 때, 안에서 불꽃이 올라와요. 한 곳에 집중 자극을 줄 때 가장 강하게 반응하는데, 당사자도 이걸 잘 몰라요.",kink:"내면의 불꽃 · 수동적 강렬함 · 집중 자극 반응 · 눈빛 교환 · 반전",pop:3},
-ISPFW:{name:"전신스피커",emoji:"🌸",sub:"터치 한 번에 온몸이 반응해. 볼륨 조절 불가",color:"#FD79A8",desc:"상대가 리드하면 온몸이 동시에 반응하는 타입. 작은 터치에도 전신이 울려요. 반응이 너무 풍부해서 상대가 재미있어합니다. 일단 시작되면 컨트롤이 안 돼요.",kink:"전신 반응 · 풍부한 표현 · 상대 리드 선호 · 민감함 · 자발적 개방",pop:3},
-ISPRN:{name:"카멜레온",emoji:"🪞",sub:"상대가 거칠면 거칠게, 부드러우면 부드럽게",color:"#DFE6E9",desc:"상대의 에너지를 그대로 반사하는 타입. 같은 사람인데 상대에 따라 완전히 다른 모습이 나옵니다. 한 가지 자극에 깊이 빠져드는 몰입형.",kink:"에너지 동기화 · 상대 반영 · 리듬 맞추기 · 체온 교감 · 적응력",pop:2},
-ISPRW:{name:"영혼이탈",emoji:"💭",sub:"맡기면 의식이 멀어져. 꿈속 같아",color:"#A29BFE",desc:"신뢰하는 상대에게 완전히 맡기면, 의식이 몽환적인 상태로 넘어가는 타입. 섹스 중 '여기가 어디지?' 하는 순간이 있어요. 가장 수용적이고 유연한 타입.",kink:"완전한 맡김 · 몽환 상태 · 전신 파동 · 느린 빌드업 · 꿈결 같은 섹스",pop:2},
-ISMFN:{name:"딥다이버",emoji:"🫧",sub:"감정 바닥까지 내려가야 쾌감도 바닥까지",color:"#00CEC9",desc:"감정에서 시작되지만 스스로 원할 때 먼저 신호를 보내는 타입. 얕은 섹스로는 만족 못 해요. 감정적 연결이 깊을수록 쾌감도 깊어지는 비례 관계.",kink:"감정적 자발성 · 깊은 몰입 · 한 부위 집중 · 수용적 주도 · 깊이",pop:3},
-ISMFW:{name:"파도타기",emoji:"🌀",sub:"흐름을 타는 게 중요해. 끊기면 처음부터",color:"#00B894",desc:"사랑의 감정이 곧 성욕으로 이어지고, 상대의 리드에 온몸으로 반응합니다. 자기가 원하는 건 확실히 아는 타입. 다만 흐름이 끊기면 처음부터 다시 올려야 합니다.",kink:"감정적 파동 · 전신 반응 · 적극적 수용 · 자기 인식 · 흐름 중요",pop:3},
-ISMRN:{name:"금고",emoji:"🕳️",sub:"비번 맞추면 대박. 근데 비번이 어려워",color:"#00B894",desc:"겉으로 성적 관심이 없어 보여서 '쟤는 관심 없나?' 합니다. 성욕이 없는 게 아니라 발화 조건이 까다로운 거예요. 안전한 관계에서 충분한 시간을 들여야 열립니다. 한번 열리면 누구보다 깊고 강렬해요.",kink:"느린 전희 · 호흡 동기화 · 아이 컨택트 · 깊은 키스 · 사후 교감",pop:3},
-ISMRW:{name:"분위기중독",emoji:"🌊",sub:"분위기 없으면 꺼져. 있으면 녹아",color:"#6C5CE7",desc:"분위기가 전부인 타입. 조명, 음악, 상대의 목소리, 이불의 촉감 — 이런 게 다 맞아야 올라옵니다. 온몸에 퍼지는 파동형 감각을 즐겨요. 형광등 아래서는 불가능.",kink:"슬로우 빌드업 · 눈 가리기 · 속삭임 · 전신 자극 · ASMR",pop:5},
-EDPFN:{name:"조련사",emoji:"⛓️",sub:"동의 위의 통제. 상대의 한계를 내가 정해",color:"#2D3436",desc:"금기적 판타지를 주도적으로 실현하는 타입. 단순히 거칠게 하는 게 아니라, 상대의 심리적 경계선을 탐색하고 그 너머로 이끄는 과정에서 흥분합니다. 동의 위의 통제가 핵심.",kink:"본디지 · 오르가즘 컨트롤 · 에지 플레이 · 역할극 · 명령/복종",pop:3},
-EDPFW:{name:"감독판",emoji:"🃏",sub:"같은 밤은 없어. 매번 새 시나리오",color:"#636E72",desc:"조련사의 금기 지향에 '온몸 전체를 무대로'가 붙은 타입. 장소 옮기고, 소도구 쓰고, 체위 바꾸고. 연인이 '오늘은 또 뭐야?' 하는 게 일상.",kink:"즉흥 시나리오 · 다중 자극 · 장소 이동 · 소도구 · 서프라이즈",pop:2},
-EDPRN:{name:"저격수",emoji:"🌑",sub:"약점 하나 찾으면, 거기만 팜",color:"#2D3436",desc:"가장 전략적인 주도형. 상대를 관찰하고, 어디에 가장 강하게 반응하는지 파악한 다음, 그 한 점을 끝까지 공략합니다. 상대가 '어떻게 알았어?' 라고 말하면 성공.",kink:"심리적 긴장 · 핀포인트 공략 · 느린 지배 · 반응 관찰 · 정밀함",pop:2},
-EDPRW:{name:"시한폭탄",emoji:"💫",sub:"보통 때는 조용해. 근데 터지면 다 날아가",color:"#E84393",desc:"평소에는 성적 에너지가 전혀 안 보입니다. 근데 적절한 트리거가 오면? 모든 금기를 한꺼번에 가로지릅니다. 상대가 예상하지 못한 순간에, 예상하지 못한 강도로.",kink:"기습적 전환 · 경계 파괴 · 예측 불가 타이밍 · 폭발적 · 잠잠→폭풍",pop:2},
-EDMFN:{name:"대본있음",emoji:"🧠",sub:"머릿속에 다 짜놨어. 실행만 남았어",color:"#6C5CE7",desc:"섹스의 모든 시나리오를 미리 머릿속에서 설계하고, 그걸 정밀하게 실행하는 타입. 가장 지적인 주도형. 즉흥? 그것도 대본에 포함되어 있습니다.",kink:"시나리오 설계 · 역할극 · 정밀한 지배 · 심리적 통제 · 언어적 지배",pop:2},
-EDMFW:{name:"쓸어버림",emoji:"🌩️",sub:"감정이랑 몸 동시에 와. 버틸 수 없어",color:"#A29BFE",desc:"강렬한 감정과 강렬한 신체 경험을 동시에 만들어내는 타입. 상대를 정서적으로 압도하면서 물리적으로도 압도합니다. 끝나고 나면 상대가 멍합니다.",kink:"감정적 폭풍 · 전신 지배 · 강렬한 분위기 · 카리스마 · 감정+신체 동시",pop:2},
-EDMRN:{name:"흑막",emoji:"🎭",sub:"존재감 없다가, 갑자기 지배하고 있어",color:"#636E72",desc:"평소에 성적 관심이 전혀 안 보이는 사람. 근데 모드가 켜지면 심리적 지배로 상대를 한 점에 고정시킵니다. 상대가 '이 사람이 이런 사람이었어?' 하는 반응이 존재 증명.",kink:"심리적 지배 · 분위기 통제 · 갑작스러운 전환 · 미스터리 · 반전",pop:2},
-EDMRW:{name:"호기심천국",emoji:"🌌",sub:"안 해본 건 못 참아. 근데 감정은 필수야",color:"#A29BFE",desc:"금기에 대한 호기심과 감정적 깊이가 동시에 작동하는 타입. 새로운 걸 하고 싶은데, 아무하고나는 안 돼요. 감정적으로 연결된 상대와 같이 경계를 넓혀가는 게 핵심.",kink:"새로운 장소 · 코스프레 · 상호 탐색 · 긴 대화 후 섹스 · 여행지 섹스",pop:3},
-ESPFN:{name:"뭐든좋아",emoji:"🟥",sub:"다 받아. 뭐든 해도 돼. 진짜로",color:"#D63031",desc:"가장 과감한 수용형. '그거 해봐. 뭐든 해도 돼'라고 진심으로 말하는 타입. 상대의 가장 어두운 판타지를 꺼내게 만드는 촉매 역할. 한 가지 자극에 집중할 때 폭발적으로 반응.",kink:"과감한 수용 · 자발적 복종 · 한계 테스트 · 금기 요청 · 집중 쾌감",pop:2},
-ESPFW:{name:"안테나",emoji:"🔮",sub:"어떤 자극이든 수신 완료. 전신으로",color:"#FD79A8",desc:"어떤 종류의 자극이든 온몸으로 받아들이는 타입. 채널을 안 가립니다. 상대가 뭘 해도 반응이 있어서, 상대가 신이 납니다.",kink:"전방위 수용 · 다감각 반응 · 실험적 개방 · 서프라이즈 반응 · 호기심",pop:2},
-ESPRN:{name:"무심판",emoji:"🫥",sub:"너의 판타지를 말해봐. 판단 안 해",color:"#B2BEC3",desc:"상대의 어두운 판타지를 판단 없이 받아들이는 타입. '그런 거 좋아해?' 대신 '더 말해봐'라고 합니다. 상대의 가장 깊은 욕망을 실현시키는 거울 같은 존재.",kink:"판단 없는 수용 · 금기 공명 · 단일 감각 몰입 · 판타지 실현 · 깊은 항복",pop:2},
-ESPRW:{name:"해파리",emoji:"🌠",sub:"형태가 없어. 상대에 따라 완전히 달라져",color:"#DFE6E9",desc:"가장 경계가 없는 타입. 자기 욕망의 형태가 고정되어 있지 않아요. 상대가 거칠면 거기에 맞추고, 부드러우면 거기에도 맞춥니다. 물처럼 형태 없는 욕망.",kink:"극도의 유연성 · 상황 순응 · 무경계 · 흐름 맡김 · 형태 없는 욕망",pop:2},
-ESMFN:{name:"이중잠금",emoji:"🗝️",sub:"열쇠가 2개 필요해. 감정 하나, 신뢰 하나",color:"#FDCB6E",desc:"가장 복잡한 내면을 가진 타입. 금기적 판타지가 풍부한데 아무에게나 안 보여줘요. 감정적 연결 + 깊은 신뢰, 두 조건이 다 충족돼야 열립니다. 열리면 상대가 놀랄 만큼.",kink:"숨겨진 판타지 · 선택적 개방 · 신뢰 기반 · 비밀 공유 · 두 번째 얼굴",pop:2},
-ESMFW:{name:"오늘다름",emoji:"🌈",sub:"어제는 순했는데, 오늘은 완전 다른 사람",color:"#E17055",desc:"감정의 색깔이 바뀔 때마다 욕망의 형태도 바뀌는 타입. 상대가 '도대체 뭘 좋아하는 거야?' 라고 물으면, 진심으로 '나도 몰라'라고 대답합니다.",kink:"감정 따라 변화 · 다채로운 수용 · 전신 반응 · 예측 불가 · 예술적",pop:2},
-ESMRN:{name:"백기",emoji:"🌙",sub:"어둠 속에서, 완전히 내려놓을 때 가장 깊어",color:"#636E72",desc:"어둡고 고요한 분위기에서 가장 깊이 반응하는 타입. 상대의 심리적 리드에 서서히 열리며, 완전한 항복의 순간에 세상이 사라지는 경험을 추구해요.",kink:"어둠 속 항복 · 고요한 수용 · 극도의 몰입 · 심리적 굴복 · 세계 차단",pop:2},
-ESMRW:{name:"머릿속19금",emoji:"🦋",sub:"겉은 순둥이. 머릿속은 19금 극장",color:"#FD79A8",desc:"가장 강력한 성적 에너지원이 머릿속에 있는 타입. 겉으로는 전혀 그렇게 안 보이는데, 안에서 돌아가는 판타지의 수위가 상상을 초월합니다. 그 판타지를 상대에게 말하는 것 자체가 전희.",kink:"시나리오 플레이 · 눈 가리기 · 서프라이즈 · 감각 박탈 · 코스프레",pop:4},
+IDPN:{name:"점화",emoji:"🔥",sub:"좋아하는 사람 앞에서, 몸이 머리보다 빠르다",color:"#E84393",desc:"감정이 확인되는 순간 불이 붙는 타입. 서두르는 게 아니라 자연스럽게 먼저 움직입니다. 한 곳을 정하면 거기서 끝까지 — 분산되면 집중이 깨져요.",kink:"강한 첫 터치 · 눈 맞춤 · 체위 고정 · 목 잡기 · 리드",pop:6},
+IDPW:{name:"탕진",emoji:"🌋",sub:"한 곳으로는 부족해. 전부 가져야 직성이 풀린다",color:"#E17055",desc:"머리카락부터 발끝까지 가능한 모든 걸 탐색해야 하는 타입. 한 체위로 끝나는 법이 없고 끝나고 나면 둘 다 탈진해있어요.",kink:"전신 탐색 · 다양한 체위 · 긴 섹스 · 정열적 키스 · 마무리 없는 밤",pop:5},
+IDMN:{name:"냉혈",emoji:"🕯️",sub:"감정 없으면 몸도 없다. 근데 감정이 되면 누구보다 강해진다",color:"#0984E3",desc:"겉으로는 차가워 보이는데 사랑하는 사람 앞에서만 스위치가 켜지는 타입. 한 가지 행위에 깊이 몰입하고 눈을 맞추고 이름을 부릅니다.",kink:"아이 컨택트 · 이름 부르기 · 느린 몰입 · 깊은 키스 · 사후 침묵",pop:4},
+IDMW:{name:"설계자",emoji:"🛡️",sub:"당신이 좋아하는 거, 나는 이미 다 알고 있어",color:"#0984E3",desc:"상대의 반응을 읽으면서 쾌감을 설계하는 타입. '여기 좋아?'를 가장 많이 묻고 감정과 신체를 동시에 끌어올립니다.",kink:"긴 전희 · 반응 읽기 · 풀바디 · 귓속말 · 사후 포옹",pop:4},
+ISPN:{name:"잠복",emoji:"🕯️",sub:"겉은 조용해. 근데 건드리면 안에서 터진다",color:"#E17055",desc:"성적 에너지가 밖으로 안 보이는 타입. 상대가 먼저 리드할 때 한 곳에 집중 자극이 올 때 안에서 불이 올라옵니다.",kink:"느린 리드 · 집중 자극 · 눈빛 교환 · 반전 · 예상 못 한 강도",pop:3},
+ISPW:{name:"진동",emoji:"🌸",sub:"터치 하나에 온몸이 울린다. 볼륨 조절 불가",color:"#FD79A8",desc:"상대가 리드하면 온몸이 동시에 반응하는 타입. 작은 터치에도 전신이 울려서 상대가 신이 납니다.",kink:"전신 반응 · 풍부한 표현 · 상대 리드 · 민감함 · 자발적 개방",pop:3},
+ISMN:{name:"금고",emoji:"🕳️",sub:"비번 맞추면 대박. 근데 비번이 어렵다",color:"#00B894",desc:"겉으로 성적 관심이 없어 보이지만 발화 조건이 까다로운 거예요. 안전한 관계에서 충분한 시간이 필요합니다. 한번 열리면 누구보다 깊고 강렬해요.",kink:"느린 전희 · 호흡 동기화 · 아이 컨택트 · 깊은 키스 · 사후 교감",pop:3},
+ISMW:{name:"녹는점",emoji:"🌊",sub:"분위기가 전부야. 맞으면 녹고, 아니면 없어",color:"#6C5CE7",desc:"조명, 음악, 상대의 목소리, 이불의 촉감 — 이런 게 다 맞아야 올라오는 타입. 조건이 충족되면 온몸이 파동처럼 반응해요.",kink:"슬로우 빌드업 · 눈 가리기 · 속삭임 · 전신 자극 · ASMR",pop:5},
+EDPN:{name:"저격수",emoji:"🌑",sub:"약점 하나 찾으면, 거기만 판다",color:"#A29BFE",desc:"가장 전략적인 주도형. 상대를 관찰하고 어디서 가장 강하게 반응하는지 파악한 다음 그 한 점을 끝까지 공략합니다.",kink:"심리적 긴장 · 핀포인트 공략 · 느린 지배 · 반응 관찰 · 정밀함",pop:3},
+EDPW:{name:"난류",emoji:"🃏",sub:"예측하려고 하지 마. 어차피 못 해",color:"#636E72",desc:"금기적 판타지를 주도하되 온몸을 무대로 쓰는 타입. 장소를 옮기고 소도구를 쓰고 체위를 바꿉니다.",kink:"즉흥 시나리오 · 다중 자극 · 장소 이동 · 소도구 · 서프라이즈",pop:2},
+EDMN:{name:"흑막",emoji:"🎭",sub:"존재감 없다가, 어느 순간 지배하고 있어",color:"#636E72",desc:"평소에 성적 에너지가 전혀 안 보이는 사람. 모드가 켜지면 심리적 지배로 상대를 한 점에 고정시킵니다.",kink:"심리적 지배 · 분위기 통제 · 갑작스러운 전환 · 미스터리 · 반전",pop:2},
+EDMW:{name:"폭풍전야",emoji:"🌩️",sub:"감정이랑 몸 동시에 덮친다. 버틸 수가 없어",color:"#A29BFE",desc:"강렬한 감정과 강렬한 신체 경험을 동시에 만들어내는 타입. 끝나고 나면 상대가 멍해요.",kink:"감정적 폭풍 · 전신 지배 · 강렬한 분위기 · 카리스마 · 감정+신체 동시",pop:2},
+ESPN:{name:"심연",emoji:"🟥",sub:"다 받아. 어디까지든. 진심으로",color:"#D63031",desc:"가장 과감한 수용형. '뭐든 해도 돼'를 진심으로 말하는 타입. 상대의 가장 어두운 판타지를 꺼내게 만드는 촉매 역할.",kink:"과감한 수용 · 자발적 복종 · 한계 테스트 · 금기 요청 · 집중 쾌감",pop:2},
+ESPW:{name:"안테나",emoji:"🔮",sub:"어떤 자극이든 수신 완료. 전신으로",color:"#FD79A8",desc:"어떤 종류의 자극이든 온몸으로 받아들이는 타입. 상대가 뭘 해도 반응이 있어서 상대가 신이 나요.",kink:"전방위 수용 · 다감각 반응 · 실험적 개방 · 서프라이즈 반응 · 호기심",pop:2},
+ESMN:{name:"백야",emoji:"🌙",sub:"완전히 내려놓는 그 순간이 가장 깊다",color:"#636E72",desc:"어둡고 고요한 분위기에서 가장 깊이 반응하는 타입. 완전한 항복의 순간에 세상이 사라지는 경험을 추구합니다.",kink:"어둠 속 항복 · 고요한 수용 · 극도의 몰입 · 심리적 굴복 · 세계 차단",pop:2},
+ESMW:{name:"열대야",emoji:"🦋",sub:"겉은 평온해. 머릿속은 지금 19금 극장",color:"#FD79A8",desc:"가장 강력한 성적 에너지원이 머릿속에 있는 타입. 겉으로는 전혀 그렇게 안 보이는데 안에서 돌아가는 판타지의 수위가 상상을 초월합니다.",kink:"시나리오 플레이 · 눈 가리기 · 서프라이즈 · 감각 박탈 · 코스프레",pop:4},
 };
 
 /* ── ALGORITHMIC COMPATIBILITY ── */
 function calcCompat(a,b){
-  const W=[{s:20,d:5,w:1},{s:5,d:25,w:1.2},{s:15,d:8,w:.8},{s:18,d:6,w:1},{s:15,d:8,w:.8}];
-  let raw=0;for(let i=0;i<5;i++){const m=a[i]===b[i];raw+=(m?W[i].s:W[i].d)*W[i].w;}
-  return Math.round(Math.min(95,Math.max(25,(raw-29.8)/(92-29.8)*70+25)));
+  const W=[{s:30,d:5,rev:false},{s:5,d:30,rev:true},{s:20,d:8,rev:false},{s:15,d:10,rev:false}];
+  let raw=0;for(let i=0;i<4;i++){const same=a[i]===b[i];raw+=(W[i].rev?!same:same)?W[i].s:W[i].d;}
+  return Math.round(Math.min(95,Math.max(25,(raw-28)/(95-28)*70+25)));
 }
 
 function getBestMatch(code){
@@ -280,31 +132,32 @@ function getBestMatch(code){
   return bk;
 }
 
-function getCode(sc){return AXIS_META.map((a,i)=>sc[i]>=a.max/2?"ESMRW"[i]:"IDPFN"[i]).join("");}
+function getCode(sc){
+  return[sc[0]>=AXIS_META[0].max/2?"E":"I",sc[1]>=AXIS_META[1].max/2?"S":"D",sc[2]>=AXIS_META[2].max/2?"M":"P",sc[3]>=AXIS_META[3].max/2?"W":"N"].join("");
+}
 
 function findType(code){
   if(T32[code])return{code,...T32[code],typeKey:code,match:getBestMatch(code)};
-  let bk="ISMRW",bs=-1;
-  for(const k of Object.keys(T32)){let s=0;for(let i=0;i<5;i++)if(code[i]===k[i])s++;if(s>bs){bs=s;bk=k;}}
+  let bk="ISMW",bs=-1;
+  for(const k of Object.keys(T32)){let s=0;for(let i=0;i<4;i++)if(code[i]===k[i])s++;if(s>bs){bs=s;bk=k;}}
   return{code,...T32[bk],typeKey:code,match:getBestMatch(code)};
 }
 
-function isValidCode(c){return c.length===5&&[..."IDPFNESMRW"].length&&/^[IEDPSSMFRRNW]{5}$/.test(c)&&"IE".includes(c[0])&&"DS".includes(c[1])&&"PM".includes(c[2])&&"FR".includes(c[3])&&"NW".includes(c[4]);}
+function isValidCode(c){return c.length===4&&"IE".includes(c[0])&&"DS".includes(c[1])&&"PM".includes(c[2])&&"NW".includes(c[3]);}
 
 /* ── AXIS INSIGHTS ── */
 function getAxisInsight(a,b){
-  const ins=[];const labels=["판타지 성향","권력 역학","흥분 트리거","욕망 패턴","감각 범위"];
+  const ins=[];const labels=["판타지 성향","권력 역학","흥분 트리거","감각 범위"];
   const rules=[[["I","I","둘 다 친밀함을 원합니다."],["I","E","한 쪽은 안정, 한 쪽은 모험."],["E","I","한 쪽은 모험, 한 쪽은 안정."],["E","E","둘 다 새로운 것을 원합니다."]],
   [["D","S","주도-수용이 자연스럽게 맞습니다."],["S","D","주도-수용이 자연스럽게 맞습니다."],["D","D","둘 다 주도하려 합니다. 순서를 정하면 불꽃."],["S","S","둘 다 맡기려 합니다. 누군가 먼저 시작해야 해요."]],
   [["P","P","둘 다 몸에서 시작됩니다."],["M","M","둘 다 감정이 먼저. 대화가 최고의 전희."],["P","M","시작점이 다릅니다. 한 쪽이 기다려줘야 해요."],["M","P","시작점이 다릅니다. 한 쪽이 기다려줘야 해요."]],
-  [["F","F","둘 다 먼저 원합니다."],["R","R","둘 다 천천히. 누군가 불을 붙여야 합니다."],["F","R","자연스러운 리듬. 한 쪽이 점화합니다."],["R","F","자연스러운 리듬. 한 쪽이 점화합니다."]],
   [["N","N","둘 다 한 곳에 집중. 깊이가 엄청납니다."],["W","W","둘 다 온몸. 끝없이 탐색하는 밤."],["N","W","한 쪽은 깊이, 한 쪽은 넓이. 조율하면 완벽."],["W","N","한 쪽은 깊이, 한 쪽은 넓이. 조율하면 완벽."]]];
-  for(let i=0;i<5;i++){const f=rules[i].find(([x,y])=>x===a[i]&&y===b[i]);if(f){const good=i===1?(a[i]!==b[i]):(a[i]===b[i]);ins.push({axis:labels[i],text:f[2],status:good?"match":a[i]===b[i]&&i===1?"tension":"adjust"});}}
+  for(let i=0;i<4;i++){const f=rules[i].find(([x,y])=>x===a[i]&&y===b[i]);if(f){const good=i===1?(a[i]!==b[i]):(a[i]===b[i]);ins.push({axis:labels[i],text:f[2],status:good?"match":a[i]===b[i]&&i===1?"tension":"adjust"});}}
   return ins;
 }
 
 const PH={warm:"워밍업",core:"본격 진입",deep:"더 깊이",last:"마지막"};
-const PH_SUB={warm:"아직은 가볍게 갈게요\n...아직은요 😏",core:"여기서부터 거짓말하면\n본색 못 찾아요 😈",deep:"여기까지 온 거\n이미 솔직한 거예요 🔥",last:""};
+const PH_SUB={warm:"솔직해져도 괜찮아요.\n여기선 아무도 몰라요. 😌",core:"지금부터는 좀 달라요\n머리가 아니라 몸한테 물어보세요. 😏",deep:"여기까지 온 거,\n이미 답 알고 있는 거예요.\n근데 진짜는 지금부터예요. 🔥",last:"마지막 하나.\n이거 끝나면 당신의 본색이 나와요. 🖤"};
 const C={bg:"#050510",scene:"#C8C4D8",prompt:"#FFFFFF",choice:"#DBD7EA",choiceBg:"rgba(255,255,255,0.03)",choiceHover:"rgba(255,255,255,0.07)",choiceBorder:"rgba(255,255,255,0.06)",choiceBorderHover:"rgba(232,67,147,0.25)",muted:"#7B7590",dim:"#4A4460",vdim:"#2A2540",accent:"#E84393",accent2:"#6C5CE7"};
 const F="'Pretendard','Noto Sans KR',sans-serif";
 
@@ -317,7 +170,7 @@ function App(){
   const[gender,setGender]=useState(null);
   const[qs,setQs]=useState([]);
   const[qi,setQi]=useState(0);
-  const[sc,setSc]=useState([0,0,0,0,0]);
+  const[sc,setSc]=useState([0,0,0,0]);
   const[history,setHistory]=useState([]); // [{qi, axis, idx}]
   const[fade,setFade]=useState(true);
   const[res,setRes]=useState(null);
@@ -347,7 +200,9 @@ function App(){
         setTimeout(()=>{setFade(false);setTimeout(()=>{setPhTr(null);setQi(qi+1);},400);},4000);
       }
       else{setFade(false);setTimeout(()=>setQi(qi+1),280);}
-    }else{const r=findType(getCode(ns));setRes(r);setMyCode(r.typeKey);go("result");}
+    }else{const r=findType(getCode(ns));setRes(r);setMyCode(r.typeKey);
+      saveResult({gender,result:r.typeKey,scores:ns,answers:[...history.map(h=>h.idx),idx]});
+      go("result");}
   };
   const goBack=()=>{
     if(history.length===0||phTr)return;
@@ -356,12 +211,12 @@ function App(){
     setHistory(history.slice(0,-1));
     setFade(false);setTimeout(()=>setQi(prev.qi),280);
   };
-  const reset=()=>{setScr("landing");setGender(null);setQi(0);setSc([0,0,0,0,0]);setHistory([]);setRes(null);setPage("test");};
+  const reset=()=>{setScr("landing");setGender(null);setQi(0);setSc([0,0,0,0]);setHistory([]);setRes(null);setPage("test");};
   const goCompare=()=>{setPage("compare");setCResult(null);setCTab("compare");setFade(false);};
 
   const doCompare=()=>{
     const m=myCode.toUpperCase().trim(),t=theirCode.toUpperCase().trim();
-    if(!isValidCode(m)||!isValidCode(t)){alert("유효한 5글자 코드를 입력해주세요 (예: IDPFN)");return;}
+    if(!isValidCode(m)||!isValidCode(t)){alert("유효한 4글자 코드를 입력해주세요 (예: IDPN)");return;}
     const score=calcCompat(m,t);const insights=getAxisInsight(m,t);
     const mT=T32[m]||findType(m);const tT=T32[t]||findType(t);
     setCResult({my:m,their:t,score,insights,myType:mT,theirType:tT});
@@ -416,7 +271,7 @@ function App(){
               onMouseEnter={e=>{e.target.style.background=C.choiceHover;e.target.style.borderColor=C.choiceBorderHover;}}
               onMouseLeave={e=>{e.target.style.background=C.choiceBg;e.target.style.borderColor=C.choiceBorder;}}>{l}</button>))}
         </div>
-        <p style={{textAlign:"center",fontSize:10,color:C.muted,marginTop:24}}>🔞 만 19세 이상 · 모든 응답은 저장되지 않습니다</p>
+        <p style={{textAlign:"center",fontSize:10,color:C.muted,marginTop:24}}>🔞 만 19세 이상 · 응답은 통계 목적으로 익명 저장됩니다</p>
       </div>
     )}
 
@@ -474,27 +329,38 @@ function App(){
           <p style={{fontSize:14,lineHeight:1.9,color:C.scene,margin:0,position:"relative",fontWeight:300}}>{res.desc}</p>
         </div>
         <div style={{background:res.color+"06",borderRadius:14,padding:"16px 18px",border:"1px solid "+res.color+"12",marginBottom:16}}>
-          <div style={{fontSize:11,color:C.dim,letterSpacing:2,marginBottom:6,fontWeight:300}}>🔥 끌리는 키워드</div>
-          <p style={{fontSize:14.5,color:res.color,margin:0,fontWeight:600}}>{res.kink}</p>
+          <div style={{fontSize:11,color:C.dim,letterSpacing:2,marginBottom:10,fontWeight:300}}>🔥 끌리는 키워드</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+            {res.kink.split(" · ").map((k,i)=>(
+              <span key={i} style={{background:res.color+"12",border:"1px solid "+res.color+"28",borderRadius:20,padding:"5px 13px",fontSize:12,color:res.color}}>{k}</span>
+            ))}
+          </div>
         </div>
-        <div style={{background:"rgba(255,255,255,0.02)",borderRadius:14,padding:"20px 18px",marginBottom:16,border:"1px solid rgba(255,255,255,0.03)"}}>
-          <div style={{fontSize:11,color:C.dim,marginBottom:16,letterSpacing:2,fontWeight:300}}>욕망 스펙트럼</div>
-          {AXIS_META.map((ax,i)=>{const v=sc[i];const pct=Math.max(10,Math.min(90,(v/ax.max)*100));const isR=v>=ax.max/2;return(
-            <div key={i} style={{marginBottom:i<4?16:0}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                <span style={{fontSize:12,color:!isR?"#fff":C.dim,fontWeight:!isR?700:400}}>{ax.l}</span>
-                <span style={{fontSize:12,color:isR?"#fff":C.dim,fontWeight:isR?700:400}}>{ax.r}</span>
-              </div>
-              <div style={{height:5,background:"rgba(255,255,255,0.025)",borderRadius:3,position:"relative"}}>
-                <div style={{position:"absolute",top:0,left:0,height:"100%",borderRadius:3,background:"linear-gradient(90deg,"+res.color+"33,"+res.color+")",width:pct+"%",transition:"width 1.2s cubic-bezier(0.4,0,0.2,1)"}}/>
-                <div style={{position:"absolute",top:-3,height:11,width:11,borderRadius:"50%",background:res.color,boxShadow:"0 0 10px "+res.color+"44",left:"calc("+pct+"% - 5px)",transition:"left 1.2s cubic-bezier(0.4,0,0.2,1)"}}/>
-              </div>
-            </div>);})}
+        <div style={{background:"rgba(255,255,255,0.02)",borderRadius:14,padding:"20px 16px 12px",marginBottom:16,border:"1px solid rgba(255,255,255,0.03)"}}>
+          <div style={{fontSize:11,color:C.dim,marginBottom:4,letterSpacing:2,fontWeight:300,textAlign:"center"}}>욕망 스펙트럼</div>
+          {(()=>{
+            const cx=130,cy=130,r=90,n=4;
+            const ang=i=>(Math.PI*2*i)/n-Math.PI/2;
+            const gp=rad=>Array.from({length:n},(_,i)=>[cx+rad*Math.cos(ang(i)),cy+rad*Math.sin(ang(i))]);
+            const dp=sc.map((s,i)=>{const rat=Math.min(s/AXIS_META[i].max,1);return[cx+r*rat*Math.cos(ang(i)),cy+r*rat*Math.sin(ang(i))];});
+            const tp=pts=>pts.map((p,i)=>(i===0?"M":"L")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")+" Z";
+            const outer=gp(r);
+            const lbls=AXIS_META.map((ax,i)=>{const a=ang(i);const dom=sc[i]>=ax.max/2;return{x:cx+(r+22)*Math.cos(a),y:cy+(r+22)*Math.sin(a),text:dom?ax.r:ax.l,dom};});
+            return(
+              <svg viewBox="0 0 260 260" width="100%" style={{display:"block"}}>
+                {[0.33,0.66,1].map((t,gi)=><path key={gi} d={tp(gp(r*t))} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>)}
+                {Array.from({length:n},(_,i)=><line key={i} x1={cx} y1={cy} x2={outer[i][0]} y2={outer[i][1]} stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>)}
+                <path d={tp(dp)} fill={res.color+"22"} stroke={res.color} strokeWidth="1.5" strokeLinejoin="round"/>
+                {dp.map(([x,y],i)=><circle key={i} cx={x} cy={y} r="4" fill={res.color}/>)}
+                {lbls.map((lb,i)=><text key={i} x={lb.x} y={lb.y} textAnchor="middle" dominantBaseline="middle" fontSize="11" fontFamily="'Noto Sans KR',sans-serif" fontWeight={lb.dom?"700":"400"} fill={lb.dom?res.color:"rgba(255,255,255,0.3)"}>{lb.text}</text>)}
+              </svg>
+            );
+          })()}
         </div>
         <div onClick={goCompare} style={{background:"linear-gradient(135deg,"+C.accent+"12,"+C.accent2+"12)",borderRadius:14,padding:"20px 18px",marginBottom:28,border:"1px solid "+C.accent+"20",cursor:"pointer",transition:"all 0.2s"}}
           onMouseEnter={e=>{e.currentTarget.style.border="1px solid "+C.accent+"44";e.currentTarget.style.transform="scale(1.01)";}}
           onMouseLeave={e=>{e.currentTarget.style.border="1px solid "+C.accent+"20";e.currentTarget.style.transform="none";}}>
-          <div style={{fontSize:11,color:C.dim,marginBottom:8,letterSpacing:2,fontWeight:300}}>나와 가장 잘 맞는 유형</div>
+          <div style={{fontSize:11,color:C.scene,marginBottom:8,letterSpacing:2,fontWeight:400}}>나와 가장 잘 맞는 유형</div>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
             <div style={{fontSize:28}}>{T32[res.match]?.emoji}</div>
             <div><div style={{fontSize:13,color:C.muted}}>{getCat(res.match).emoji} {getCat(res.match).name}</div><div style={{fontSize:18,fontWeight:700,color:"#fff"}}>{T32[res.match]?.name}</div></div>
@@ -512,7 +378,7 @@ function App(){
     <div style={{textAlign:"center",marginTop:28,marginBottom:24}}>
       <div style={{fontSize:11,letterSpacing:6,color:C.dim,marginBottom:12,fontWeight:300}}>본색 궁합</div>
       <h1 style={{fontSize:28,fontWeight:900,color:"#fff",margin:0,lineHeight:1.3}}>우리의 <span style={{background:"linear-gradient(90deg,#E84393,#6C5CE7)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>욕망</span>은 맞을까?</h1>
-      <p style={{fontSize:12,color:C.muted,marginTop:10,fontWeight:300}}>서로의 코드를 입력하면 5축 궁합을 분석합니다</p>
+      <p style={{fontSize:12,color:C.muted,marginTop:10,fontWeight:300}}>서로의 유형을 입력하면 4축 궁합을 분석합니다</p>
     </div>
 
     <div style={{display:"flex",gap:4,marginBottom:24,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:4}}>
@@ -523,12 +389,14 @@ function App(){
     {/* ── COMPARE INPUT ── */}
     {cTab==="compare"&&!cResult&&(<>
       <Sec>
-        <Label>나의 코드</Label>
-        <input value={myCode} onChange={e=>setMyCode(e.target.value.toUpperCase().slice(0,5))} placeholder="IDPFN" maxLength={5} style={{width:"100%",padding:"14px 16px",border:"1px solid "+(myCode&&isValidCode(myCode)?C.accent+"44":"rgba(255,255,255,0.08)"),borderRadius:12,background:"rgba(255,255,255,0.03)",color:C.accent,fontSize:20,fontWeight:700,letterSpacing:6,textAlign:"center",fontFamily:"'Bebas Neue',sans-serif",outline:"none",boxSizing:"border-box"}}/>
+        <Label>나의 유형</Label>
+        <div style={{width:"100%",padding:"14px 16px",border:"1px solid "+C.accent+"44",borderRadius:12,background:"rgba(255,255,255,0.03)",color:C.accent,fontSize:20,fontWeight:700,letterSpacing:6,textAlign:"center",fontFamily:"'Bebas Neue',sans-serif",boxSizing:"border-box"}}>
+          {myCode||"—"}
+        </div>
         {myCode&&T32[myCode]&&<div style={{textAlign:"center",marginTop:8,fontSize:13,color:C.scene}}>{T32[myCode].emoji} {T32[myCode].name}</div>}
         <div style={{height:20}}/>
-        <Label>상대의 코드</Label>
-        <input value={theirCode} onChange={e=>setTheirCode(e.target.value.toUpperCase().slice(0,5))} placeholder="ISMRW" maxLength={5} style={{width:"100%",padding:"14px 16px",border:"1px solid "+(theirCode&&isValidCode(theirCode)?C.accent2+"44":"rgba(255,255,255,0.08)"),borderRadius:12,background:"rgba(255,255,255,0.03)",color:C.accent2,fontSize:20,fontWeight:700,letterSpacing:6,textAlign:"center",fontFamily:"'Bebas Neue',sans-serif",outline:"none",boxSizing:"border-box"}}/>
+        <Label>상대의 유형</Label>
+        <input value={theirCode} onChange={e=>setTheirCode(e.target.value.toUpperCase().slice(0,4))} placeholder="ISMW" maxLength={4} style={{width:"100%",padding:"14px 16px",border:"1px solid "+(theirCode&&isValidCode(theirCode)?C.accent2+"44":"rgba(255,255,255,0.08)"),borderRadius:12,background:"rgba(255,255,255,0.03)",color:C.accent2,fontSize:20,fontWeight:700,letterSpacing:6,textAlign:"center",fontFamily:"'Bebas Neue',sans-serif",outline:"none",boxSizing:"border-box"}}/>
         {theirCode&&T32[theirCode]&&<div style={{textAlign:"center",marginTop:8,fontSize:13,color:C.scene}}>{T32[theirCode].emoji} {T32[theirCode].name}</div>}
       </Sec>
 
@@ -601,7 +469,7 @@ function App(){
 
       {/* 5-axis comparison */}
       <Sec>
-        <Label>5축 욕망 비교</Label>
+        <Label>4축 욕망 비교</Label>
         {cResult.insights.map((ins,i)=>(
           <div key={i} style={{marginBottom:i<4?18:0}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
@@ -614,7 +482,7 @@ function App(){
 
       {/* CTAs */}
       <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
-        <button onClick={()=>setCResult(null)} style={{padding:"16px",border:"1px solid "+C.accent+"20",borderRadius:14,width:"100%",background:C.accent+"08",color:C.accent,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"center"}}>다른 코드로 비교하기</button>
+        <button onClick={()=>setCResult(null)} style={{padding:"16px",border:"1px solid "+C.accent+"20",borderRadius:14,width:"100%",background:C.accent+"08",color:C.accent,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"center"}}>다른 유형으로 비교하기</button>
         <button onClick={reset} style={{padding:"16px",border:"none",borderRadius:14,width:"100%",background:"linear-gradient(135deg,#E84393,#6C5CE7)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",textAlign:"center"}}>다시 찾아보기</button>
       </div>
     </>)}
@@ -622,8 +490,10 @@ function App(){
     {/* ── STATS TAB ── */}
     {cTab==="stats"&&(<>
       <Sec>
-        <Label>나의 코드 입력</Label>
-        <input value={myCode} onChange={e=>setMyCode(e.target.value.toUpperCase().slice(0,5))} placeholder="IDPFN" maxLength={5} style={{width:"100%",padding:"14px 16px",border:"1px solid "+(myT32?C.accent+"44":"rgba(255,255,255,0.08)"),borderRadius:12,background:"rgba(255,255,255,0.03)",color:C.accent,fontSize:20,fontWeight:700,letterSpacing:6,textAlign:"center",fontFamily:"'Bebas Neue',sans-serif",outline:"none",boxSizing:"border-box"}}/>
+        <Label>나의 유형</Label>
+        <div style={{width:"100%",padding:"14px 16px",border:"1px solid "+C.accent+"44",borderRadius:12,background:"rgba(255,255,255,0.03)",color:C.accent,fontSize:20,fontWeight:700,letterSpacing:6,textAlign:"center",fontFamily:"'Bebas Neue',sans-serif",boxSizing:"border-box"}}>
+          {myCode||"—"}
+        </div>
         {myT32&&<div style={{textAlign:"center",marginTop:8,fontSize:14,color:C.scene}}>{myT32.emoji} {myT32.name}</div>}
       </Sec>
 
@@ -649,7 +519,7 @@ function App(){
         </Sec>
 
         <Sec>
-          <Label>🌍 전체 32유형 분포</Label>
+          <Label>🌍 전체 16유형 분포</Label>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {allTypes.map(([k,t])=>(
               <div key={k} style={{display:"flex",alignItems:"center",gap:8}}>
