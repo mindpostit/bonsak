@@ -1,0 +1,40 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body, #root { min-height: 100vh; background: #050510; }
+body {
+  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: inherit; cursor: pointer; }
+input { font-family: inherit; }
+
+@keyframes splashFade {
+  0% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { opacity: 0; pointer-events: none; }
+}
+@keyframes splashPulse {
+  0% { opacity: 0; transform: scale(0.95); }
+  20% { opacity: 1; transform: scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes lineGrow {
+  0% { width: 0; opacity: 0; }
+  100% { width: 48px; opacity: 1; }
+}
+@keyframes subtitleIn {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes phNameIn {
+  0% { opacity: 0; letter-spacing: 12px; }
+  100% { opacity: 1; letter-spacing: 6px; }
+}
+@keyframes phLineGrow {
+  0% { width: 0; opacity: 0; }
+  100% { width: 48px; opacity: 1; }
+}
+@keyframes phSubIn {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
