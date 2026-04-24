@@ -507,7 +507,7 @@ export default function Test() {
               </Sec>
             </>)}
 
-            <button onClick={reset} style={{ padding:"16px", border:"none", borderRadius:14, width:"100%", background:"linear-gradient(135deg,#E84393,#6C5CE7)", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", textAlign:"center", marginTop:8 }}>다시 찾아보기</button>
+            <button onClick={reset} style={{ padding:"16px", border:"none", borderRadius:14, width:"100%", background:"linear-gradient(135deg,#E84393,#6C5CE7)", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", textAlign:"center", marginTop:8 }}>다시 테스트하기</button>
           </>)}
 
           <p style={{ textAlign:"center", fontSize:8.5, color:"#12101E", marginTop:24, paddingBottom:20, lineHeight:1.5 }}>이 서비스는 사람을 연결하지 않습니다 · 코드 교환은 외부에서 자율적으로 이루어집니다</p>
