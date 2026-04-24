@@ -264,11 +264,50 @@ export default function Test() {
                   <div style={{ fontSize:12, letterSpacing:4, color:C.dim, marginBottom:16, fontWeight:300 }}>당신의 본색</div>
                   <div style={{ fontSize:14, color:res.color, fontWeight:600, marginBottom:6 }}>{cat.emoji} {cat.name}</div>
                   <div style={{ fontSize:11, color:C.dim, marginBottom:16, fontWeight:300 }}>{cat.desc}</div>
-                  <div style={{ fontSize:56, marginBottom:10 }}>{res.emoji}</div>
+                  {/* 추상 심볼 */}
+                  {(() => {
+                    const cat = res.code.slice(0,2);
+                    const color = res.color;
+                    return (
+                      <svg viewBox="0 0 80 80" width="72" height="72" style={{ display:"block", margin:"0 auto 14px" }}>
+                        <circle cx="40" cy="40" r="32" fill="none" stroke={color+"18"} strokeWidth="1"/>
+                        {cat === "ID" && <>
+                          <circle cx="40" cy="22" r="4" fill={color}/>
+                          <path d="M40 22 L56 46 L40 58 L24 46 Z" fill={color+"20"} stroke={color} strokeWidth="1.2" strokeLinejoin="round"/>
+                        </>}
+                        {cat === "IS" && <>
+                          <rect x="27" y="28" width="26" height="22" rx="5" fill="none" stroke={color+"40"} strokeWidth="1.2"/>
+                          <path d="M33 28 L33 23 A7 7 0 0 1 47 23 L47 28" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+                          <circle cx="40" cy="40" r="3.5" fill={color}/>
+                          <line x1="40" y1="43" x2="40" y2="48" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+                        </>}
+                        {cat === "ED" && <>
+                          <circle cx="40" cy="40" r="20" fill="none" stroke={color+"18"} strokeWidth="0.5"/>
+                          <circle cx="40" cy="40" r="10" fill="none" stroke={color+"28"} strokeWidth="0.5"/>
+                          <line x1="14" y1="40" x2="66" y2="40" stroke={color+"25"} strokeWidth="0.5"/>
+                          <circle cx="60" cy="40" r="5" fill={color+"28"} stroke={color} strokeWidth="1.2"/>
+                          <circle cx="40" cy="40" r="3" fill={color}/>
+                          <path d="M40 37.5 L42.5 40 L40 42.5 L37.5 40 Z" fill="rgba(255,255,255,0.5)"/>
+                        </>}
+                        {cat === "ES" && <>
+                          <path d="M40 16 Q58 26 58 40 Q58 58 40 64 Q22 58 22 40 Q22 26 40 16Z" fill={color+"12"} stroke={color+"35"} strokeWidth="1"/>
+                          <path d="M40 26 Q52 33 52 40 Q52 52 40 56 Q28 52 28 40 Q28 33 40 26Z" fill={color+"18"} stroke={color} strokeWidth="1"/>
+                          <circle cx="40" cy="40" r="3.5" fill={color}/>
+                        </>}
+                      </svg>
+                    );
+                  })()}
                   <div style={{ display:"inline-block", padding:"5px 16px", borderRadius:20, background:res.color+"10", border:"1px solid "+res.color+"22", fontFamily:"'Bebas Neue',sans-serif", fontSize:15, letterSpacing:5, color:res.color, marginBottom:12 }}>{res.code}</div>
                   <h2 style={{ fontSize:32, fontWeight:900, color:"#fff", margin:"0 0 6px" }}>{res.name}</h2>
                   <p style={{ fontSize:14, color:C.scene, margin:0, fontWeight:400 }}>"{res.sub}"</p>
                 </div>
+                {/* 페르소나 카드 */}
+                {res.persona && (
+                  <div style={{ background:res.color+"08", border:"1px solid "+res.color+"18", borderRadius:12, padding:"12px 16px", marginBottom:16 }}>
+                    <p style={{ fontSize:10, color:res.color+"99", letterSpacing:2, margin:"0 0 6px" }}>이런 사람</p>
+                    <p style={{ fontSize:13, color:"rgba(255,255,255,0.75)", lineHeight:1.7, margin:0 }}>{res.persona}</p>
+                  </div>
+                )}
                 <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.04)", borderRadius:18, padding:"24px 22px", marginBottom:16, position:"relative", overflow:"hidden" }}>
                   <div style={{ position:"absolute", bottom:-30, right:-30, width:120, height:120, background:`radial-gradient(circle,${res.color}0A 0%,transparent 60%)` }}/>
                   <p style={{ fontSize:14, lineHeight:1.9, color:C.scene, margin:0, position:"relative", fontWeight:300 }}>{res.desc}</p>
@@ -390,7 +429,7 @@ export default function Test() {
             )}
 
             <button onClick={doCompare} style={{ padding:"18px", border:"none", borderRadius:14, width:"100%", background:"linear-gradient(135deg,#E84393,#6C5CE7)", color:"#fff", fontSize:16, fontWeight:700, cursor:"pointer", textAlign:"center", opacity:isValidCode(myCode)&&isValidCode(theirCode)?1:0.4, transition:"all 0.2s", marginBottom:6 }}>본색 궁합 확인하기</button>
-            <button onClick={reset} style={{ padding:12, border:"none", background:"transparent", width:"100%", color:C.scene, fontSize:12, cursor:"pointer", marginTop:4 }}>← 다시 찾아보기</button>
+            <button onClick={reset} style={{ padding:12, border:"none", background:"transparent", width:"100%", color:C.scene, fontSize:12, cursor:"pointer", marginTop:4 }}>← 다시 테스트하기</button>
           </>)}
 
           {/* 궁합 결과 */}
@@ -441,7 +480,7 @@ export default function Test() {
 
             <div style={{ display:"flex", flexDirection:"column", gap:10, marginTop:8 }}>
               <button onClick={() => setCResult(null)} style={{ padding:"16px", border:"1px solid "+C.accent+"20", borderRadius:14, width:"100%", background:C.accent+"08", color:C.accent, fontSize:14, fontWeight:600, cursor:"pointer", textAlign:"center" }}>다른 유형으로 비교하기</button>
-              <button onClick={reset} style={{ padding:"16px", border:"none", borderRadius:14, width:"100%", background:"linear-gradient(135deg,#E84393,#6C5CE7)", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", textAlign:"center" }}>다시 찾아보기</button>
+              <button onClick={reset} style={{ padding:"16px", border:"none", borderRadius:14, width:"100%", background:"linear-gradient(135deg,#E84393,#6C5CE7)", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", textAlign:"center" }}>다시 테스트하기</button>
             </div>
           </>)}
 
