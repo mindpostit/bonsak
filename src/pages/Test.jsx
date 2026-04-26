@@ -181,6 +181,7 @@ export default function Test() {
                 ))}
               </div>
               <p style={{ textAlign:"center", fontSize:10, color:C.muted, marginTop:24 }}>🔞 만 19세 이상 · 응답은 통계 목적으로 익명 저장됩니다</p>
+              <p style={{ textAlign:"center", fontSize:10, color:"rgba(255,255,255,0.18)", marginTop:8 }}>🔬 성과학 연구 기반 설계 · 의학적 진단 도구가 아닙니다</p>
             </div>
           )}
 
@@ -358,9 +359,12 @@ export default function Test() {
                   <div style={{ padding:"14px", borderRadius:12, background:"linear-gradient(135deg,#E84393,#6C5CE7)", color:"#fff", fontSize:14, fontWeight:700, textAlign:"center" }}>본색 궁합 보러가기 →</div>
                 </div>
                 <button onClick={reset} style={{ padding:12, border:"none", background:"transparent", width:"100%", color:C.scene, fontSize:12, cursor:"pointer" }}>다시 테스트하기</button>
-                <p style={{ textAlign:"center", fontSize:8.5, color:"#12101E", marginTop:24, lineHeight:1.5 }}>
-                  성과학 연구 기반 축 설계 · {gender==="F"?"여성 맞춤 문항 포함 · ":gender==="M"?"남성 맞춤 문항 포함 · ":""}의학적 진단 도구가 아닙니다
-                </p>
+                <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.05)", borderRadius:12, padding:"14px 16px", marginTop:20 }}>
+                  <p style={{ fontSize:10, color:"rgba(255,255,255,0.3)", letterSpacing:2, margin:"0 0 8px" }}>연구 기반</p>
+                  <p style={{ fontSize:12, color:"rgba(255,255,255,0.4)", lineHeight:1.7, margin:0 }}>
+                    Wilson WSFQ · Chivers et al. · Basson 모델을 기반으로 설계된 자기이해 도구입니다. 의학적 진단을 대체하지 않습니다.
+                  </p>
+                </div>
               </div>
             );
           })()}
