@@ -173,12 +173,22 @@ export default function Test() {
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                 <div style={{ fontSize:11, color:C.dim, textAlign:"center", marginBottom:4, letterSpacing:2, fontWeight:300 }}>성별을 선택하세요</div>
-                {[["남성","M"],["여성","F"]].map(([l,v]) => (
-                  <button key={v} onClick={() => selG(v)} style={{ padding:"16px 20px", border:"1px solid "+C.choiceBorder, borderRadius:14, background:C.choiceBg, color:C.scene, fontSize:14.5, cursor:"pointer", transition:"all 0.2s", textAlign:"center", fontWeight:500 }}
-                    onMouseEnter={e => { e.target.style.background = C.choiceHover; e.target.style.borderColor = C.choiceBorderHover; }}
-                    onMouseLeave={e => { e.target.style.background = C.choiceBg; e.target.style.borderColor = C.choiceBorder; }}
-                  >{l}</button>
-                ))}
+                <button onClick={() => selG("M")} style={{ padding:"18px 20px", border:"1px solid rgba(255,255,255,0.08)", borderRadius:14, background:"rgba(255,255,255,0.03)", color:"#fff", fontSize:15, cursor:"pointer", transition:"all 0.2s", textAlign:"center", fontWeight:600, display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
+                >
+                  <span style={{ fontSize:16 }}>♂</span>
+                  <span>남성</span>
+                  <span style={{ fontSize:11, color:"rgba(255,255,255,0.3)", fontWeight:300 }}>Male</span>
+                </button>
+                <button onClick={() => selG("F")} style={{ padding:"18px 20px", border:"1px solid rgba(253,121,168,0.2)", borderRadius:14, background:"rgba(253,121,168,0.04)", color:"#fff", fontSize:15, cursor:"pointer", transition:"all 0.2s", textAlign:"center", fontWeight:600, display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(253,121,168,0.1)"; e.currentTarget.style.borderColor = "rgba(253,121,168,0.4)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(253,121,168,0.04)"; e.currentTarget.style.borderColor = "rgba(253,121,168,0.2)"; }}
+                >
+                  <span style={{ fontSize:16 }}>♀</span>
+                  <span>여성</span>
+                  <span style={{ fontSize:11, color:"rgba(255,255,255,0.3)", fontWeight:300 }}>Female</span>
+                </button>
               </div>
               <p style={{ textAlign:"center", fontSize:10, color:C.muted, marginTop:24 }}>🔞 만 19세 이상 · 응답은 통계 목적으로 익명 저장됩니다</p>
               <p style={{ textAlign:"center", fontSize:10, color:"rgba(255,255,255,0.18)", marginTop:8 }}>🔬 성과학 연구 기반 설계 · 의학적 진단 도구가 아닙니다</p>
@@ -219,7 +229,7 @@ export default function Test() {
           {scr === "test" && qs.length > 0 && !phTr && (
             <div style={{ flex:1, display:"flex", flexDirection:"column", justifyContent:"center", paddingTop:24, paddingBottom:32 }}>
               <div style={{ marginBottom:36 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                     {qi > 0 && (
                       <button onClick={goBack} style={{ padding:"6px 14px", border:"none", borderRadius:10, background:"rgba(232,67,147,0.08)", color:C.accent, fontSize:12, cursor:"pointer", transition:"all 0.2s", fontWeight:500 }}
@@ -227,14 +237,20 @@ export default function Test() {
                         onMouseLeave={e => e.target.style.background = "rgba(232,67,147,0.08)"}
                       >← 이전</button>
                     )}
-                    <span style={{ fontSize:12, color:C.dim, letterSpacing:2, fontWeight:300 }}>{PH[qs[qi].phase]}</span>
+                    <span style={{ fontSize:10, color:C.accent, letterSpacing:2, fontWeight:600 }}>{PH[qs[qi].phase]}</span>
                   </div>
-                  <span style={{ fontSize:15, color:C.accent, fontWeight:700 }}>
-                    {qi+1}<span style={{ color:C.vdim, fontWeight:400 }}> / {qs.length}</span>
+                  <span style={{ fontSize:14, color:"#fff", fontWeight:700 }}>
+                    {qi+1}<span style={{ color:"rgba(255,255,255,0.3)", fontWeight:400, fontSize:11 }}> / {qs.length}</span>
                   </span>
                 </div>
-                <div style={{ height:2, background:"rgba(255,255,255,0.025)", borderRadius:1 }}>
-                  <div style={{ height:"100%", borderRadius:1, background:"linear-gradient(90deg,#E84393,#6C5CE7)", width:((qi+1)/qs.length*100)+"%", transition:"width 0.5s ease" }}/>
+                <div style={{ height:4, background:"rgba(255,255,255,0.06)", borderRadius:2, position:"relative" }}>
+                  <div style={{ height:"100%", borderRadius:2, background:"linear-gradient(90deg,#E84393,#6C5CE7)", width:((qi+1)/qs.length*100)+"%", transition:"width 0.5s ease" }}/>
+                  {["warm","core","deep"].map((ph,i) => {
+                    const phIdx = qs.findIndex(q => q.phase === ph);
+                    const pct = phIdx >= 0 ? (phIdx/qs.length*100) : null;
+                    if(pct === null || pct === 0) return null;
+                    return <div key={ph} style={{ position:"absolute", top:"50%", left:pct+"%", transform:"translate(-50%,-50%)", width:2, height:8, background:"rgba(255,255,255,0.15)", borderRadius:1 }}/>;
+                  })}
                 </div>
               </div>
               <div style={{ marginBottom: qs[qi].prompt ? 20 : 32 }}>
