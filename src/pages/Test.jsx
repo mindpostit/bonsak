@@ -8,6 +8,25 @@ import { saveResult } from "../utils/supabase.js";
 const PH = { warm:"워밍업", core:"본격 진입", deep:"더 깊이", last:"마지막" };
 const F = "'Pretendard','Noto Sans KR',sans-serif";
 
+const MBTI_MAP = {
+  IDPN:{type:"ESTP",desc:"생각보다 몸이 먼저 움직이는 사람"},
+  IDPW:{type:"ESFP",desc:"끝날 때까지 끝난 게 아닌 사람"},
+  IDMN:{type:"INTJ",desc:"겉은 차갑고 안은 뜨거운 사람"},
+  IDMW:{type:"ENFJ",desc:"상대가 뭘 원하는지 먼저 아는 사람"},
+  ISPN:{type:"ISTP",desc:"건드리기 전엔 절대 모르는 사람"},
+  ISPW:{type:"ISFP",desc:"온몸으로 느끼고 온몸으로 표현하는 사람"},
+  ISMN:{type:"INFJ",desc:"열리는 데 시간이 걸리지만 깊은 사람"},
+  ISMW:{type:"INFP",desc:"분위기가 전부인 사람"},
+  EDPN:{type:"ENTJ",desc:"약점 파악하고 거기만 파는 사람"},
+  EDPW:{type:"ENTP",desc:"매번 다른 사람처럼 느껴지는 사람"},
+  EDMN:{type:"INTP",desc:"조용한데 어느 순간 주도하고 있는 사람"},
+  EDMW:{type:"ENFP",desc:"감정이랑 에너지가 동시에 오는 사람"},
+  ESPN:{type:"ESFJ",desc:"상대의 판타지를 꺼내게 만드는 사람"},
+  ESPW:{type:"ESFP",desc:"어떤 자극이든 다 받아들이는 사람"},
+  ESMN:{type:"ISFJ",desc:"어두운 데서 가장 깊어지는 사람"},
+  ESMW:{type:"INTP",desc:"겉은 평온한데 머릿속은 19금인 사람"},
+};
+
 export default function Test() {
   const [page, setPage] = useState("test");
   const [scr, setScr] = useState("splash");
@@ -75,6 +94,7 @@ export default function Test() {
       }
     } else {
       const r = findType(getCode(ns));
+      r.mbti = MBTI_MAP[r.code] || null;
       setRes(r); setMyCode(r.code);
       saveResult({ gender, result: r.code, scores: ns, answers: [...history.map(h => h.idx), idx] });
       go("result");
@@ -337,28 +357,18 @@ export default function Test() {
                     ))}
                   </div>
                 </div>
-                {/* 레이더 차트 */}
-                <div style={{ background:"rgba(255,255,255,0.02)", borderRadius:14, padding:"20px 16px 12px", marginBottom:16, border:"1px solid rgba(255,255,255,0.03)" }}>
-                  <div style={{ fontSize:11, color:C.dim, marginBottom:4, letterSpacing:2, fontWeight:300, textAlign:"center" }}>욕망 스펙트럼</div>
-                  {(() => {
-                    const cx=130, cy=130, r=90, n=4;
-                    const ang = i => (Math.PI*2*i)/n - Math.PI/2;
-                    const gp = rad => Array.from({length:n}, (_,i) => [cx+rad*Math.cos(ang(i)), cy+rad*Math.sin(ang(i))]);
-                    const dp = sc.map((s,i) => { const rat=Math.min(s/AXIS_META[i].max,1); return [cx+r*rat*Math.cos(ang(i)), cy+r*rat*Math.sin(ang(i))]; });
-                    const tp = pts => pts.map((p,i) => (i===0?"M":"L")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")+" Z";
-                    const outer = gp(r);
-                    const lbls = AXIS_META.map((ax,i) => { const a=ang(i); const dom=sc[i]>=ax.max/2; return {x:cx+(r+22)*Math.cos(a), y:cy+(r+22)*Math.sin(a), text:dom?ax.r:ax.l, dom}; });
-                    return (
-                      <svg viewBox="0 0 260 260" width="100%" style={{display:"block"}}>
-                        {[0.33,0.66,1].map((t,gi) => <path key={gi} d={tp(gp(r*t))} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>)}
-                        {Array.from({length:n}, (_,i) => <line key={i} x1={cx} y1={cy} x2={outer[i][0]} y2={outer[i][1]} stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>)}
-                        <path d={tp(dp)} fill={res.color+"22"} stroke={res.color} strokeWidth="1.5" strokeLinejoin="round"/>
-                        {dp.map(([x,y],i) => <circle key={i} cx={x} cy={y} r="4" fill={res.color}/>)}
-                        {lbls.map((lb,i) => <text key={i} x={lb.x} y={lb.y} textAnchor="middle" dominantBaseline="middle" fontSize="11" fontFamily="'Noto Sans KR',sans-serif" fontWeight={lb.dom?"700":"400"} fill={lb.dom?res.color:"rgba(255,255,255,0.3)"}>{lb.text}</text>)}
-                      </svg>
-                    );
-                  })()}
-                </div>
+                {/* MBTI 뱃지 */}
+                {res.mbti && (
+                  <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, padding:"14px 16px", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                    <div>
+                      <p style={{ fontSize:10, color:"rgba(255,255,255,0.3)", letterSpacing:2, margin:"0 0 4px" }}>MBTI로 치면</p>
+                      <p style={{ fontSize:13, color:"rgba(255,255,255,0.65)", margin:0, lineHeight:1.5 }}>{res.mbti.desc}</p>
+                    </div>
+                    <div style={{ background:"linear-gradient(135deg,rgba(232,67,147,0.15),rgba(108,92,231,0.15))", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"8px 14px", textAlign:"center", flexShrink:0, marginLeft:14 }}>
+                      <span style={{ fontSize:18, fontWeight:900, color:"#fff", letterSpacing:2 }}>{res.mbti.type}</span>
+                    </div>
+                  </div>
+                )}
                 {/* 베스트 매치 */}
                 <div onClick={goCompare} style={{ background:`linear-gradient(135deg,${C.accent}12,${C.accent2}12)`, borderRadius:14, padding:"20px 18px", marginBottom:28, border:"1px solid "+C.accent+"20", cursor:"pointer", transition:"all 0.2s" }}
                   onMouseEnter={e => { e.currentTarget.style.border="1px solid "+C.accent+"44"; e.currentTarget.style.transform="scale(1.01)"; }}
