@@ -38,3 +38,14 @@ input { font-family: inherit; }
   0% { opacity: 0; transform: translateY(8px); }
   100% { opacity: 1; transform: translateY(0); }
 }
+@keyframes sceneLine {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes promptPulse {
+  0%   { opacity: 1; text-shadow: none; }
+  45%  { opacity: 0.5; text-shadow: none; }
+  50%  { opacity: 0.45; text-shadow: 0 0 20px rgba(232,67,147,0.35); }
+  55%  { opacity: 0.5; }
+  100% { opacity: 1; text-shadow: none; }
+}

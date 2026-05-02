@@ -9,16 +9,26 @@ export const C = {
   choiceBorderHover: "rgba(232,67,147,0.25)",
   muted: "#7B7590",
   dim: "#4A4460",
+  vdim: "#2A2540",
   accent: "#E84393",
   accent2: "#6C5CE7",
 };
 
+export const FONTS = "'Pretendard','Noto Sans KR',sans-serif";
+
 export const PH_SPLASH = {
-  warm: "솔직해져도 괜찮아요.\n여기선 아무도 몰라요. 😌",
-  core: "지금부터는 좀 달라요.\n머리가 아니라 몸한테 물어보세요. 😏",
-  deep: "여기까지 온 거,\n이미 답 알고 있는 거예요.\n근데 진짜는 지금부터예요. 🔥",
-  last: "마지막 하나.\n이거 끝나면 당신의 본색이 나와요. 🖤",
+  intro: "솔직해져도 괜찮아요.\n여기선 아무도 몰라요. 😌",
+  core:  "지금부터는 좀 달라요.\n머리가 아니라 몸한테 물어보세요. 😏",
+  deep:  "여기까지 온 거,\n이미 답 알고 있는 거예요.\n근데 진짜는 지금부터예요. 🔥",
+  last:  "마지막 하나.\n이거 끝나면 당신의 본색이 나와요. 🖤",
 };
+
+export const AXIS_META = [
+  { l: "친밀", r: "탐험", max: 5 },
+  { l: "주도", r: "수용", max: 5 },
+  { l: "신체", r: "감정", max: 5 },
+  { l: "집중", r: "확산", max: 5 },
+];
 
 export const CAT = {
   ID: { name: "불꽃형", emoji: "🔥", desc: "사랑하는 사람을 내 방식으로" },
@@ -30,10 +40,3 @@ export const CAT = {
 export function getCat(code) {
   return CAT[code.slice(0, 2)] || CAT.ID;
 }
-
-export const AXIS_META = [
-  { l: "친밀", r: "탐험", max: 5 },
-  { l: "주도", r: "수용", max: 5 },
-  { l: "신체", r: "감정", max: 5 },
-  { l: "집중", r: "확산", max: 5 },
-];

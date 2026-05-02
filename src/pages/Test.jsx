@@ -5,7 +5,7 @@ import { buildQ } from "../data/questions.js";
 import { calcCompat, getBestMatch, getCode, findType, isValidCode, getAxisInsight } from "../utils/algorithm.js";
 import { saveResult } from "../utils/supabase.js";
 
-const PH = { warm:"워밍업", core:"본격 진입", deep:"더 깊이", last:"마지막" };
+const PH = { intro:"인트로", core:"본격 진입", deep:"더 깊이", last:"마지막" };
 const F = "'Pretendard','Noto Sans KR',sans-serif";
 
 const MBTI_MAP = {
@@ -36,6 +36,7 @@ export default function Test() {
   const [sc, setSc] = useState([0,0,0,0]);
   const [history, setHistory] = useState([]);
   const [fade, setFade] = useState(true);
+  const [promptActive, setPromptActive] = useState(false);
   const [res, setRes] = useState(null);
   const [phTr, setPhTr] = useState(null);
   const [splashDone, setSplashDone] = useState(false);
@@ -63,6 +64,15 @@ export default function Test() {
     setFade(false);
     setTimeout(() => setFade(true), 80);
   }, [scr, qi, page]);
+
+  useEffect(() => {
+    if (scr !== "test" || !qs[qi]) return;
+    setPromptActive(false);
+    const lineCount = qs[qi].scene.split("\n").length;
+    const delay = lineCount * 320 + 900;
+    const t = setTimeout(() => setPromptActive(true), delay);
+    return () => clearTimeout(t);
+  }, [qi, scr]);
 
   const go = s => { setFade(false); setTimeout(() => setScr(s), 300); };
   const selG = g => { setGender(g); setQs(buildQ(g)); go("age"); };
@@ -230,7 +240,7 @@ export default function Test() {
                 </p>
                 <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                   <button onClick={() => {
-                    setPhTr(PH.warm); setFade(false);
+                    setPhTr(PH.intro); setFade(false);
                     setTimeout(() => setFade(true), 80);
                     setTimeout(() => {
                       setFade(false);
@@ -265,7 +275,7 @@ export default function Test() {
                 </div>
                 <div style={{ height:4, background:"rgba(255,255,255,0.06)", borderRadius:2, position:"relative" }}>
                   <div style={{ height:"100%", borderRadius:2, background:"linear-gradient(90deg,#E84393,#6C5CE7)", width:((qi+1)/qs.length*100)+"%", transition:"width 0.5s ease" }}/>
-                  {["warm","core","deep"].map((ph,i) => {
+                  {["intro","core","deep"].map((ph,i) => {
                     const phIdx = qs.findIndex(q => q.phase === ph);
                     const pct = phIdx >= 0 ? (phIdx/qs.length*100) : null;
                     if(pct === null || pct === 0) return null;
@@ -274,14 +284,30 @@ export default function Test() {
                 </div>
               </div>
               <div style={{ marginBottom: qs[qi].prompt ? 20 : 32 }}>
-                <p style={{ fontSize:15.5, fontWeight:300, lineHeight:2, color:C.scene, whiteSpace:"pre-line", margin:0 }}>{qs[qi].scene}</p>
+                {qs[qi].scene.split("\n").map((line, i) => (
+                  <span key={qi + "-" + i} style={{
+                    display: "block",
+                    fontSize: 15.5, fontWeight: 300, lineHeight: 2,
+                    color: "rgba(255,255,255,0.45)", whiteSpace: "pre-line",
+                    opacity: 0,
+                    animation: `sceneLine 0.4s ease ${i * 0.32}s forwards`,
+                  }}>{line}</span>
+                ))}
               </div>
               {qs[qi].prompt && (
-                <div style={{ marginBottom:32 }}>
-                  <p style={{ fontSize:20, fontWeight:800, lineHeight:1.5, color:C.prompt, whiteSpace:"pre-line", margin:0 }}>{qs[qi].prompt}</p>
+                <div style={{ marginBottom: 32 }}>
+                  <p key={qi + "-prompt"} style={{
+                    fontSize: 22, fontWeight: 900, lineHeight: 1.45,
+                    color: "#FF3366", whiteSpace: "pre-line", margin: 0,
+                    opacity: 0,
+                    animation: `sceneLine 0.4s ease ${qs[qi].scene.split("\n").length * 0.32 + 0.2}s forwards${promptActive ? ", promptPulse 2.8s ease-in-out infinite" : ""}`,
+                  }}>{qs[qi].prompt}</p>
                 </div>
               )}
-              <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              <div style={{ display:"flex", flexDirection:"column", gap:12,
+                opacity: 0,
+                animation: `sceneLine 0.4s ease ${(qs[qi].scene.split("\n").length * 0.32) + 0.6}s forwards`,
+              }}>
                 {qs[qi].a.map((a, i) => (
                   <button key={qi+"-"+i} onClick={() => pick(i)} style={{ padding:"20px", border:"1px solid "+C.choiceBorder, borderRadius:14, background:C.choiceBg, color:C.choice, fontSize:14, lineHeight:1.7, textAlign:"left", cursor:"pointer", transition:"all 0.2s", whiteSpace:"pre-line", fontWeight:400 }}
                     onMouseEnter={e => { e.target.style.background = C.choiceHover; e.target.style.borderColor = C.choiceBorderHover; e.target.style.transform = "translateX(3px)"; }}
