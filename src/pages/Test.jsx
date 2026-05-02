@@ -385,6 +385,20 @@ export default function Test() {
                   <div style={{ padding:"14px", borderRadius:12, background:"linear-gradient(135deg,#E84393,#6C5CE7)", color:"#fff", fontSize:14, fontWeight:700, textAlign:"center" }}>본색 궁합 보러가기 →</div>
                 </div>
                 <button onClick={reset} style={{ padding:12, border:"none", background:"transparent", width:"100%", color:C.scene, fontSize:12, cursor:"pointer" }}>다시 테스트하기</button>
+                <button onClick={() => {
+                  const text = `나의 본색은 ${res.code} ${res.name} ${res.emoji}\nMBTI로 치면 ${res.mbti?.type || ""} 느낌\n당신의 본색은? 👇`;
+                  if (navigator.share) {
+                    navigator.share({ title:"본색 — 나의 욕망 유형", text, url:"https://kinktype.me" });
+                  } else {
+                    navigator.clipboard.writeText("https://kinktype.me").then(() => alert("링크가 복사됐어요!"));
+                  }
+                }} style={{ width:"100%", padding:"14px", border:"1px solid rgba(255,255,255,0.1)", borderRadius:14, background:"rgba(255,255,255,0.03)", color:"rgba(255,255,255,0.7)", fontSize:14, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginTop:8, fontFamily:"inherit" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                  </svg>
+                  내 본색 공유하기
+                </button>
                 <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.05)", borderRadius:12, padding:"14px 16px", marginTop:20 }}>
                   <p style={{ fontSize:10, color:"rgba(255,255,255,0.3)", letterSpacing:2, margin:"0 0 8px" }}>연구 기반</p>
                   <p style={{ fontSize:12, color:"rgba(255,255,255,0.4)", lineHeight:1.7, margin:0 }}>
