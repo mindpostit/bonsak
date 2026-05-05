@@ -46,6 +46,7 @@ export default function Test() {
   const [theirCode, setTheirCode] = useState("");
   const [cResult, setCResult] = useState(null);
   const [cTab, setCTab] = useState("compare");
+  const [compatSel, setCompatSel] = useState("best");
   const [animPct, setAnimPct] = useState(0);
 
   useEffect(() => {
@@ -395,21 +396,92 @@ export default function Test() {
                     </div>
                   </div>
                 )}
-                {/* 베스트 매치 */}
-                <div onClick={goCompare} style={{ background:`linear-gradient(135deg,${C.accent}12,${C.accent2}12)`, borderRadius:14, padding:"20px 18px", marginBottom:28, border:"1px solid "+C.accent+"20", cursor:"pointer", transition:"all 0.2s" }}
-                  onMouseEnter={e => { e.currentTarget.style.border="1px solid "+C.accent+"44"; e.currentTarget.style.transform="scale(1.01)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.border="1px solid "+C.accent+"20"; e.currentTarget.style.transform="none"; }}
-                >
-                  <div style={{ fontSize:11, color:C.scene, marginBottom:8, letterSpacing:2, fontWeight:400 }}>나와 가장 잘 맞는 유형</div>
-                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-                    <div style={{ fontSize:28 }}>{T16[res.match]?.emoji}</div>
-                    <div>
-                      <div style={{ fontSize:13, color:C.muted }}>{getCat(res.match).emoji} {getCat(res.match).name}</div>
-                      <div style={{ fontSize:18, fontWeight:700, color:"#fff" }}>{T16[res.match]?.name}</div>
+                {/* 궁합 카드 인라인 */}
+                {(() => {
+                  const mc = res.code;
+                  if (!isValidCode(mc)) return null;
+                  const best = getBestMatch(mc);
+                  const allK = Object.keys(T16).filter(k => k !== mc);
+                  const worst = allK.reduce((w,k) => calcCompat(mc,k) < calcCompat(mc,w) ? k : w, allK[0]);
+                  const tension = allK.find(k => k[1] === mc[1] && k !== best && k !== worst) || allK[2];
+                  const cards = [
+                    { key:"best", label:"🔥 최고 궁합", their:best, accent:"#E84393" },
+                    { key:"tension", label:"⚡ 긴장 궁합", their:tension, accent:"#F39C12" },
+                    { key:"opposite", label:"🧊 정반대", their:worst, accent:"#6C5CE7" },
+                    { key:"same", label:"🪞 같은 유형", their:mc, accent:"rgba(255,255,255,0.5)" },
+                  ];
+                  const sel = cards.find(c => c.key === compatSel) || cards[0];
+                  const theirCode = sel.their;
+                  const theirT = T16[theirCode];
+                  const score = calcCompat(mc, theirCode);
+                  const insights = getAxisInsight(mc, theirCode);
+                  return (
+                    <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:16, padding:18, marginBottom:16 }}>
+                      <p style={{ fontSize:10, color:"rgba(255,255,255,0.35)", letterSpacing:2, margin:"0 0 4px" }}>본색 궁합</p>
+                      <p style={{ fontSize:12, color:"rgba(255,255,255,0.25)", margin:"0 0 14px" }}>눌러서 확인하세요.</p>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
+                        {cards.map(c => {
+                          const s = calcCompat(mc, c.their);
+                          const t = T16[c.their];
+                          const isSelected = compatSel === c.key;
+                          return (
+                            <div key={c.key} onClick={() => setCompatSel(c.key)} style={{ borderRadius:12, padding:14, cursor:"pointer", border: isSelected ? `2px solid ${c.accent}` : "1px solid rgba(255,255,255,0.08)", background:"rgba(255,255,255,0.02)", transition:"all 0.2s" }}>
+                              <p style={{ fontSize:10, color:c.accent, margin:"0 0 6px", fontWeight:600 }}>{c.label}</p>
+                              <p style={{ fontSize:15, fontWeight:800, color:"#fff", margin:"0 0 2px" }}>{t?.name}</p>
+                              <p style={{ fontSize:11, color:"rgba(255,255,255,0.4)", margin:0 }}>{c.their} · {s}%</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ borderTop:"1px solid rgba(255,255,255,0.05)", paddingTop:14 }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:12 }}>
+                          <div style={{ position:"relative", width:64, height:64, flexShrink:0 }}>
+                            <svg viewBox="0 0 64 64" width="64" height="64" style={{ transform:"rotate(-90deg)" }}>
+                              <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="5"/>
+                              <circle cx="32" cy="32" r="26" fill="none" stroke="url(#icg)" strokeWidth="5" strokeLinecap="round" strokeDasharray={score*1.63+" 163"} style={{ transition:"stroke-dasharray 0.6s ease" }}/>
+                              <defs><linearGradient id="icg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="#E84393"/><stop offset="100%" stopColor="#6C5CE7"/></linearGradient></defs>
+                            </svg>
+                            <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", fontSize:15, fontWeight:900, color:"#fff" }}>{score}%</div>
+                          </div>
+                          <div>
+                            <p style={{ fontSize:13, color:"#fff", fontWeight:700, margin:"0 0 3px" }}>
+                              {score>=80?"불꽃이 확실합니다.":score>=60?"좋은 궁합입니다.":score>=40?"흥미로운 긴장감.":"정반대의 매력."}
+                            </p>
+                            <p style={{ fontSize:11, color:"rgba(255,255,255,0.4)", margin:0, lineHeight:1.6 }}>
+                              {score>=80?"서로의 욕망이 자연스럽게 맞물립니다.":score>=60?"몇 가지만 맞추면 폭발할 수 있어요.":score>=40?"대화가 열쇠입니다.":"서로를 이해하면 예상치 못한 화학 반응."}
+                            </p>
+                          </div>
+                        </div>
+                        <div style={{ display:"flex", gap:8, marginBottom:12, alignItems:"center" }}>
+                          <div style={{ flex:1, background:"rgba(232,67,147,0.06)", border:"1px solid rgba(232,67,147,0.15)", borderRadius:10, padding:12, textAlign:"center" }}>
+                            <p style={{ fontSize:9, color:"rgba(255,255,255,0.3)", margin:"0 0 3px" }}>나</p>
+                            <p style={{ fontSize:11, fontWeight:700, color:C.accent, letterSpacing:2, margin:"0 0 2px" }}>{mc}</p>
+                            <p style={{ fontSize:13, fontWeight:700, color:"#fff", margin:0 }}>{res.name}</p>
+                          </div>
+                          <p style={{ fontSize:12, color:"rgba(255,255,255,0.3)", margin:0, flexShrink:0 }}>vs</p>
+                          <div style={{ flex:1, background:"rgba(108,92,231,0.06)", border:"1px solid rgba(108,92,231,0.15)", borderRadius:10, padding:12, textAlign:"center" }}>
+                            <p style={{ fontSize:9, color:"rgba(255,255,255,0.3)", margin:"0 0 3px" }}>상대</p>
+                            <p style={{ fontSize:11, fontWeight:700, color:C.accent2, letterSpacing:2, margin:"0 0 2px" }}>{theirCode}</p>
+                            <p style={{ fontSize:13, fontWeight:700, color:"#fff", margin:0 }}>{theirT?.name}</p>
+                          </div>
+                        </div>
+                        <div style={{ background:"rgba(255,255,255,0.02)", borderRadius:12, padding:14, display:"flex", flexDirection:"column", gap:12 }}>
+                          {insights.map((ins,i) => (
+                            <div key={i}>
+                              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+                                <span style={{ fontSize:13, color:C.scene, fontWeight:600 }}>{ins.axis}</span>
+                                <span style={{ fontSize:10, padding:"3px 10px", borderRadius:10, background:ins.status==="match"?"rgba(0,184,148,0.12)":ins.status==="tension"?"rgba(232,67,147,0.12)":"rgba(162,155,254,0.12)", color:ins.status==="match"?"#00B894":ins.status==="tension"?"#E84393":"#A29BFE", fontWeight:600 }}>
+                                  {ins.status==="match"?"✓ 일치":ins.status==="tension"?"⚡ 긴장":"△ 조율"}
+                                </span>
+                              </div>
+                              <p style={{ fontSize:12, color:C.muted, margin:0, lineHeight:1.5 }}>{ins.text}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ padding:"14px", borderRadius:12, background:"linear-gradient(135deg,#E84393,#6C5CE7)", color:"#fff", fontSize:14, fontWeight:700, textAlign:"center" }}>본색 궁합 보러가기 →</div>
-                </div>
+                  );
+                })()}
                 <button onClick={reset} style={{ padding:12, border:"none", background:"transparent", width:"100%", color:C.scene, fontSize:12, cursor:"pointer" }}>다시 테스트하기</button>
                 <button onClick={() => {
                   const text = `나의 본색은 ${res.code} ${res.name} ${res.emoji}\nMBTI로 치면 ${res.mbti?.type || ""} 느낌\n당신의 본색은? 👇`;
@@ -441,15 +513,9 @@ export default function Test() {
           <div style={{ textAlign:"center", marginTop:28, marginBottom:24 }}>
             <div style={{ fontSize:11, letterSpacing:6, color:C.dim, marginBottom:12, fontWeight:300 }}>본색 궁합</div>
             <h1 style={{ fontSize:28, fontWeight:900, color:"#fff", margin:0, lineHeight:1.3 }}>
-              우리의 <span style={{ background:"linear-gradient(90deg,#E84393,#6C5CE7)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>욕망</span>은 맞을까?
+              우리의 <span style={{ background:"linear-gradient(90deg,#E84393,#6C5CE7)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>본색</span>, 맞을까?
             </h1>
-            <p style={{ fontSize:12, color:C.muted, marginTop:10, fontWeight:300 }}>서로의 유형을 입력하면 4축 궁합을 분석합니다</p>
-          </div>
-
-          <div style={{ display:"flex", gap:4, marginBottom:24, background:"rgba(255,255,255,0.03)", borderRadius:12, padding:4 }}>
-            {[["compare","🔗 코드 비교"],["stats","📊 욕망 통계"]].map(([id,label]) => (
-              <button key={id} onClick={() => { setCTab(id); setCResult(null); }} style={{ flex:1, padding:"12px", border:"none", borderRadius:10, cursor:"pointer", background:cTab===id?`linear-gradient(135deg,${C.accent}20,${C.accent2}20)`:"transparent", color:cTab===id?"#fff":C.muted, fontSize:13, fontWeight:cTab===id?700:400, transition:"all 0.2s" }}>{label}</button>
-            ))}
+            <p style={{ fontSize:12, color:C.muted, marginTop:10, fontWeight:300 }}>4축 기반 욕망 궁합 분석</p>
           </div>
 
           {/* 코드 비교 탭 */}
@@ -593,26 +659,6 @@ export default function Test() {
                     </div>
                   </div>
                 ))}
-              </Sec>
-
-              <Sec>
-                <Label>🌍 전체 16유형 분포</Label>
-                <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                  {allTypes.map(([k,t]) => (
-                    <div key={k} style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <div style={{ fontSize:14, width:22, textAlign:"center" }}>{t.emoji}</div>
-                      <div style={{ flex:1 }}>
-                        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:2 }}>
-                          <span style={{ fontSize:10, color:k===myCode?"#fff":C.muted, fontWeight:k===myCode?700:400 }}>{t.name}</span>
-                          <span style={{ fontSize:10, color:k===myCode?t.color:C.dim }}>{t.pop}%</span>
-                        </div>
-                        <div style={{ height:3, background:"rgba(255,255,255,0.03)", borderRadius:2, overflow:"hidden" }}>
-                          <div style={{ height:"100%", borderRadius:2, width:(t.pop*12)+"%", background:k===myCode?t.color:"rgba(255,255,255,0.08)", transition:"width 1s ease" }}/>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </Sec>
             </>)}
 
