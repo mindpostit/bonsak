@@ -10,7 +10,7 @@ const F = "'Pretendard','Noto Sans KR',sans-serif";
 
 const MBTI_MAP = {
   IDPN:{type:"ESTP",desc:"생각보다 몸이 먼저 움직이는 사람"},
-  IDPW:{type:"ESFP",desc:"끝날 때까지 끝난 게 아닌 사람"},
+  IDPW:{type:"ESTJ",desc:"끝날 때까지 끝난 게 아닌 사람"},
   IDMN:{type:"INTJ",desc:"겉은 차갑고 안은 뜨거운 사람"},
   IDMW:{type:"ENFJ",desc:"상대가 뭘 원하는지 먼저 아는 사람"},
   ISPN:{type:"ISTP",desc:"건드리기 전엔 절대 모르는 사람"},
@@ -24,7 +24,7 @@ const MBTI_MAP = {
   ESPN:{type:"ESFJ",desc:"상대의 판타지를 꺼내게 만드는 사람"},
   ESPW:{type:"ESFP",desc:"어떤 자극이든 다 받아들이는 사람"},
   ESMN:{type:"ISFJ",desc:"어두운 데서 가장 깊어지는 사람"},
-  ESMW:{type:"INTP",desc:"겉은 평온한데 머릿속은 19금인 사람"},
+  ESMW:{type:"ISTJ",desc:"겉은 평온한데 머릿속은 19금인 사람"},
 };
 
 export default function Test() {
@@ -322,65 +322,41 @@ export default function Test() {
           {/* 결과 */}
           {scr === "result" && res && !phTr && (() => {
             const cat = getCat(res.code);
+            const CAT_COLOR = { ID:"#E84393", IS:"#00B894", ED:"#A29BFE", ES:"#FD79A8" };
+            const color = CAT_COLOR[res.code.slice(0,2)] || res.color;
             return (
               <div style={{ flex:1, display:"flex", flexDirection:"column", paddingTop:44, paddingBottom:44 }}>
-                <div style={{ textAlign:"center", marginBottom:24 }}>
-                  <div style={{ fontSize:12, letterSpacing:4, color:C.dim, marginBottom:16, fontWeight:300 }}>당신의 본색</div>
-                  <div style={{ fontSize:14, color:res.color, fontWeight:600, marginBottom:6 }}>{cat.emoji} {cat.name}</div>
-                  <div style={{ fontSize:11, color:C.dim, marginBottom:16, fontWeight:300 }}>{cat.desc}</div>
-                  {/* 추상 심볼 */}
-                  {(() => {
-                    const cat = res.code.slice(0,2);
-                    const color = res.color;
-                    return (
-                      <svg viewBox="0 0 80 80" width="72" height="72" style={{ display:"block", margin:"0 auto 14px" }}>
-                        <circle cx="40" cy="40" r="32" fill="none" stroke={color+"18"} strokeWidth="1"/>
-                        {cat === "ID" && <>
-                          <circle cx="40" cy="22" r="4" fill={color}/>
-                          <path d="M40 22 L56 46 L40 58 L24 46 Z" fill={color+"20"} stroke={color} strokeWidth="1.2" strokeLinejoin="round"/>
-                        </>}
-                        {cat === "IS" && <>
-                          <rect x="27" y="28" width="26" height="22" rx="5" fill="none" stroke={color+"40"} strokeWidth="1.2"/>
-                          <path d="M33 28 L33 23 A7 7 0 0 1 47 23 L47 28" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-                          <circle cx="40" cy="40" r="3.5" fill={color}/>
-                          <line x1="40" y1="43" x2="40" y2="48" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-                        </>}
-                        {cat === "ED" && <>
-                          <circle cx="40" cy="40" r="20" fill="none" stroke={color+"18"} strokeWidth="0.5"/>
-                          <circle cx="40" cy="40" r="10" fill="none" stroke={color+"28"} strokeWidth="0.5"/>
-                          <line x1="14" y1="40" x2="66" y2="40" stroke={color+"25"} strokeWidth="0.5"/>
-                          <circle cx="60" cy="40" r="5" fill={color+"28"} stroke={color} strokeWidth="1.2"/>
-                          <circle cx="40" cy="40" r="3" fill={color}/>
-                          <path d="M40 37.5 L42.5 40 L40 42.5 L37.5 40 Z" fill="rgba(255,255,255,0.5)"/>
-                        </>}
-                        {cat === "ES" && <>
-                          <path d="M40 16 Q58 26 58 40 Q58 58 40 64 Q22 58 22 40 Q22 26 40 16Z" fill={color+"12"} stroke={color+"35"} strokeWidth="1"/>
-                          <path d="M40 26 Q52 33 52 40 Q52 52 40 56 Q28 52 28 40 Q28 33 40 26Z" fill={color+"18"} stroke={color} strokeWidth="1"/>
-                          <circle cx="40" cy="40" r="3.5" fill={color}/>
-                        </>}
-                      </svg>
-                    );
-                  })()}
-                  <div style={{ display:"inline-block", padding:"5px 16px", borderRadius:20, background:res.color+"10", border:"1px solid "+res.color+"22", fontFamily:"'Bebas Neue',sans-serif", fontSize:15, letterSpacing:5, color:res.color, marginBottom:12 }}>{res.code}</div>
-                  <h2 style={{ fontSize:32, fontWeight:900, color:"#fff", margin:"0 0 6px" }}>{res.name}</h2>
-                  <p style={{ fontSize:14, color:C.scene, margin:0, fontWeight:400 }}>"{res.sub}"</p>
+                <div style={{ marginBottom:20 }}>
+                  <div style={{ fontSize:12, letterSpacing:4, color:C.dim, marginBottom:14, fontWeight:300, textAlign:"center" }}>당신의 본색</div>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <span style={{ fontSize:16 }}>{cat.emoji}</span>
+                      <div>
+                        <div style={{ fontSize:13, color:color, fontWeight:600, lineHeight:1.3 }}>{cat.name}</div>
+                        <div style={{ fontSize:11, color:C.dim, fontWeight:300 }}>{cat.desc}</div>
+                      </div>
+                    </div>
+                    <div style={{ padding:"4px 14px", borderRadius:20, background:color+"10", border:"1px solid "+color+"28", fontFamily:"'Bebas Neue',sans-serif", fontSize:13, letterSpacing:4, color:color, flexShrink:0 }}>{res.code}</div>
+                  </div>
+                  <h2 style={{ fontSize:34, fontWeight:900, color:"#fff", margin:"0 0 6px", textAlign:"center" }}>{res.name}</h2>
+                  <p style={{ fontSize:14, color:C.scene, margin:0, fontWeight:400, textAlign:"center" }}>"{res.sub}"</p>
                 </div>
                 {/* 페르소나 카드 */}
                 {res.persona && (
-                  <div style={{ background:res.color+"08", border:"1px solid "+res.color+"18", borderRadius:12, padding:"12px 16px", marginBottom:16 }}>
-                    <p style={{ fontSize:10, color:res.color+"99", letterSpacing:2, margin:"0 0 6px" }}>이런 사람</p>
+                  <div style={{ background:color+"08", border:"1px solid "+color+"18", borderRadius:12, padding:"12px 16px", marginBottom:16 }}>
+                    <p style={{ fontSize:10, color:color+"99", letterSpacing:2, margin:"0 0 6px" }}>이런 사람</p>
                     <p style={{ fontSize:13, color:"rgba(255,255,255,0.75)", lineHeight:1.7, margin:0 }}>{res.persona}</p>
                   </div>
                 )}
                 <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.04)", borderRadius:18, padding:"24px 22px", marginBottom:16, position:"relative", overflow:"hidden" }}>
-                  <div style={{ position:"absolute", bottom:-30, right:-30, width:120, height:120, background:`radial-gradient(circle,${res.color}0A 0%,transparent 60%)` }}/>
+                  <div style={{ position:"absolute", bottom:-30, right:-30, width:120, height:120, background:`radial-gradient(circle,${color}0A 0%,transparent 60%)` }}/>
                   <p style={{ fontSize:14, lineHeight:1.9, color:C.scene, margin:0, position:"relative", fontWeight:300 }}>{res.desc}</p>
                 </div>
-                <div style={{ background:res.color+"06", borderRadius:14, padding:"16px 18px", border:"1px solid "+res.color+"12", marginBottom:16 }}>
+                <div style={{ background:color+"06", borderRadius:14, padding:"16px 18px", border:"1px solid "+color+"12", marginBottom:16 }}>
                   <div style={{ fontSize:11, color:C.dim, letterSpacing:2, marginBottom:10, fontWeight:300 }}>🔥 끌리는 키워드</div>
                   <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
                     {res.kink.split(" · ").map((k,i) => (
-                      <span key={i} style={{ background:res.color+"12", border:"1px solid "+res.color+"28", borderRadius:20, padding:"5px 13px", fontSize:12, color:res.color }}>{k}</span>
+                      <span key={i} style={{ background:color+"12", border:"1px solid "+color+"28", borderRadius:20, padding:"5px 13px", fontSize:12, color:color }}>{k}</span>
                     ))}
                   </div>
                 </div>
@@ -396,6 +372,36 @@ export default function Test() {
                     </div>
                   </div>
                 )}
+                {/* 4축 분포 */}
+                <div style={{ background:color+"06", border:"1px solid "+color+"12", borderRadius:14, padding:"16px 18px", marginBottom:16 }}>
+                  <div style={{ fontSize:11, color:C.dim, letterSpacing:2, marginBottom:14, fontWeight:300 }}>나의 4축 분포</div>
+                  {[
+                    { label:"판타지", left:"친밀", right:"탐험", val:sc[0], max:4, lCode:"I", rCode:"E" },
+                    { label:"권력",   left:"주도", right:"맡김", val:sc[1], max:5, lCode:"D", rCode:"S" },
+                    { label:"트리거", left:"감각", right:"심리", val:sc[2], max:5, lCode:"P", rCode:"M" },
+                    { label:"감각",   left:"단일", right:"다층", val:sc[3], max:5, lCode:"N", rCode:"W" },
+                  ].map((ax, i) => {
+                    const pct = Math.round(ax.val / ax.max * 100);
+                    const myChar = res.code[i];
+                    const isLeft = myChar === ax.lCode;
+                    return (
+                      <div key={i} style={{ marginBottom: i < 3 ? 13 : 0 }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+                          <span style={{ fontSize:12, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>{ax.label}</span>
+                          <span style={{ fontSize:11, color:color, fontWeight:600 }}>{isLeft ? ax.left : ax.right}</span>
+                        </div>
+                        <div style={{ height:5, background:"rgba(255,255,255,0.06)", borderRadius:3, position:"relative", marginBottom:5 }}>
+                          <div style={{ height:"100%", borderRadius:3, background:color+"80", width:pct+"%" }}/>
+                          <div style={{ position:"absolute", top:"50%", left:pct+"%", transform:"translate(-50%,-50%)", width:12, height:12, borderRadius:"50%", background:C.bg, border:"2px solid "+color }}/>
+                        </div>
+                        <div style={{ display:"flex", justifyContent:"space-between" }}>
+                          <span style={{ fontSize:10, fontWeight:600, color: isLeft ? color : "rgba(255,255,255,0.18)" }}>{ax.left}</span>
+                          <span style={{ fontSize:10, fontWeight:600, color: !isLeft ? color : "rgba(255,255,255,0.18)" }}>{ax.right}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
                 {/* 궁합 카드 인라인 */}
                 {(() => {
                   const mc = res.code;

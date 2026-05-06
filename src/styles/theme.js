@@ -24,10 +24,10 @@ export const PH_SPLASH = {
 };
 
 export const AXIS_META = [
-  { l: "친밀", r: "탐험", max: 5 },
-  { l: "주도", r: "수용", max: 5 },
-  { l: "신체", r: "감정", max: 5 },
-  { l: "집중", r: "확산", max: 5 },
+  { l: "친밀", r: "탐험", max: 4 },
+  { l: "주도", r: "맡김", max: 5 },
+  { l: "감각", r: "심리", max: 5 },
+  { l: "단일", r: "다층", max: 5 },
 ];
 
 export const CAT = {
