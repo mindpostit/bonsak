@@ -48,6 +48,174 @@ export default function Test() {
   const [cTab, setCTab] = useState("compare");
   const [compatSel, setCompatSel] = useState("best");
   const [animPct, setAnimPct] = useState(0);
+  const [cardDataUrl, setCardDataUrl] = useState(null);
+
+  const generateCard = async (res, cat, color, sc, mbti) => {
+    await document.fonts.ready;
+    const W = 640, H = 920;
+    const canvas = document.createElement("canvas");
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#060614";
+    ctx.fillRect(0, 0, W, H);
+
+    const g1 = ctx.createRadialGradient(0, 0, 0, 0, 0, 280);
+    g1.addColorStop(0, color + "18"); g1.addColorStop(1, "transparent");
+    ctx.fillStyle = g1; ctx.fillRect(0, 0, 280, 280);
+
+    const g2 = ctx.createRadialGradient(W, H, 0, W, H, 300);
+    g2.addColorStop(0, color + "10"); g2.addColorStop(1, "transparent");
+    ctx.fillStyle = g2; ctx.fillRect(W-300, H-300, 300, 300);
+
+    ctx.strokeStyle = color + "60"; ctx.lineWidth = 2;
+    rRect(ctx, 0, 0, W, H, 0); ctx.stroke();
+
+    ctx.letterSpacing = "6px";
+    ctx.fillStyle = "rgba(255,255,255,0.45)";
+    ctx.font = "300 20px 'Noto Sans KR'";
+    ctx.textAlign = "center";
+    ctx.fillText("나의  본색", W/2, 58);
+    ctx.letterSpacing = "0px";
+
+    ctx.font = "700 26px 'Noto Sans KR'";
+    ctx.fillStyle = color;
+    ctx.textAlign = "left";
+    const catText = `${cat.emoji} ${cat.name}`;
+    const catW = ctx.measureText(catText).width;
+    const pillW = 110;
+    const totalW = catW + 20 + pillW;
+    const startX = (W - totalW) / 2;
+    ctx.fillText(catText, startX, 106);
+
+    const px = startX + catW + 20;
+    ctx.fillStyle = color + "12";
+    rRect(ctx, px, 82, pillW, 32, 16); ctx.fill();
+    ctx.strokeStyle = color + "45"; ctx.lineWidth = 1;
+    rRect(ctx, px, 82, pillW, 32, 16); ctx.stroke();
+    ctx.letterSpacing = "4px";
+    ctx.fillStyle = color;
+    ctx.font = "700 18px 'Noto Sans KR'";
+    ctx.textAlign = "center";
+    ctx.fillText(res.code, px + pillW/2, 104);
+    ctx.letterSpacing = "0px";
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 100px 'Noto Sans KR'";
+    ctx.textAlign = "center";
+    ctx.fillText(res.name, W/2, 230);
+
+    ctx.fillStyle = color;
+    rRect(ctx, W/2 - 24, 248, 48, 4, 2); ctx.fill();
+
+    ctx.fillStyle = "rgba(255,255,255,0.42)";
+    ctx.font = "300 23px 'Noto Sans KR'";
+    ctx.textAlign = "center";
+    const sub = `"${res.sub}"`;
+    const subLines = wrapText(ctx, sub, W - 140);
+    subLines.forEach((l, i) => ctx.fillText(l, W/2, 292 + i * 34));
+
+    let y = 292 + subLines.length * 34 + 20;
+    const dg = ctx.createLinearGradient(80, 0, W-80, 0);
+    dg.addColorStop(0, "transparent");
+    dg.addColorStop(0.5, color + "45");
+    dg.addColorStop(1, "transparent");
+    ctx.strokeStyle = dg; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(80, y); ctx.lineTo(W-80, y); ctx.stroke();
+    y += 28;
+
+    ctx.fillStyle = "rgba(255,255,255,0.58)";
+    ctx.font = "300 22px 'Noto Sans KR'";
+    ctx.textAlign = "left";
+    const descLines = wrapText(ctx, res.desc, W - 130);
+    descLines.forEach(l => { ctx.fillText(l, 65, y); y += 34; });
+    y += 18;
+
+    ctx.fillStyle = color + "CC";
+    ctx.font = "400 20px 'Noto Sans KR'";
+    ctx.fillText("🔥  끌리는 키워드", 65, y);
+    y += 30;
+
+    const kinks = (res.kink || "").split(" · ");
+    let kx = 65;
+    ctx.font = "300 18px 'Noto Sans KR'";
+    kinks.forEach(k => {
+      const tw = ctx.measureText(k).width + 28;
+      if (kx + tw > W - 65) { kx = 65; y += 42; }
+      ctx.fillStyle = "rgba(255,255,255,0.05)";
+      rRect(ctx, kx, y - 22, tw, 36, 18); ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.12)"; ctx.lineWidth = 1;
+      rRect(ctx, kx, y - 22, tw, 36, 18); ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.58)";
+      ctx.textAlign = "center";
+      ctx.fillText(k, kx + tw/2, y + 4);
+      ctx.textAlign = "left";
+      kx += tw + 10;
+    });
+    y += 54;
+
+    ctx.fillStyle = "rgba(255,255,255,0.02)";
+    rRect(ctx, 65, y, W-130, 84, 16); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = 1;
+    rRect(ctx, 65, y, W-130, 84, 16); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.28)";
+    ctx.font = "300 17px 'Noto Sans KR'";
+    ctx.textAlign = "left";
+    ctx.fillText("MBTI로 치면", 88, y + 28);
+    ctx.fillStyle = "rgba(255,255,255,0.62)";
+    ctx.font = "400 19px 'Noto Sans KR'";
+    ctx.fillText(mbti?.desc || "", 88, y + 56);
+    ctx.fillStyle = color;
+    ctx.font = "900 26px 'Noto Sans KR'";
+    ctx.textAlign = "right";
+    ctx.fillText(mbti?.type || "", W - 88, y + 56);
+    y += 104;
+
+    ctx.strokeStyle = "rgba(255,255,255,0.06)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(65, y); ctx.lineTo(W-65, y); ctx.stroke();
+    y += 36;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 26px 'Noto Sans KR'";
+    ctx.textAlign = "left";
+    ctx.fillText("본", 65, y);
+    const bonW = ctx.measureText("본").width;
+    ctx.fillStyle = color;
+    ctx.fillText("색", 65 + bonW, y);
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    ctx.font = "300 17px 'Noto Sans KR'";
+    ctx.textAlign = "right";
+    ctx.fillText("kinktype.me", W-65, y);
+
+    const dataUrl = canvas.toDataURL("image/png");
+    setCardDataUrl(dataUrl);
+  };
+
+  function rRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+    ctx.lineTo(x+w, y+h-r);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+    ctx.lineTo(x+r, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+    ctx.lineTo(x, y+r);
+    ctx.quadraticCurveTo(x, y, x+r, y);
+    ctx.closePath();
+  }
+
+  function wrapText(ctx, text, maxW) {
+    const words = text.split(" ");
+    const lines = [];
+    let line = "";
+    words.forEach(w => {
+      const test = line ? line + " " + w : w;
+      if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; }
+      else line = test;
+    });
+    if (line) lines.push(line);
+    return lines;
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setSplashDone(true), 3800);
@@ -154,6 +322,29 @@ export default function Test() {
 
   return (
     <div style={{ minHeight:"100vh", background:C.bg, fontFamily:F, color:"#E8E6F0", position:"relative", overflow:"hidden" }}>
+      {/* 카드 공유 모달 — 최상단 */}
+      {cardDataUrl && (
+        <div style={{ position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.92)", zIndex:9999, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24 }}>
+          <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", letterSpacing:2, marginBottom:14, textAlign:"center" }}>
+            📱 모바일: 이미지 꾹 누르면 저장/공유
+          </div>
+          <img src={cardDataUrl} alt="본색 카드" style={{ width:"100%", maxWidth:320, borderRadius:20, display:"block", border:`2px solid ${res ? ({ID:"#E84393",IS:"#00B894",ED:"#A29BFE",ES:"#FD79A8"}[res.code?.slice(0,2)] || "#E84393") : "#E84393"}55`, boxShadow:`0 0 24px ${res ? ({ID:"#E84393",IS:"#00B894",ED:"#A29BFE",ES:"#FD79A8"}[res.code?.slice(0,2)] || "#E84393") : "#E84393"}22` }} />
+          {(() => {
+            const CAT_COLOR = { ID:"#E84393", IS:"#00B894", ED:"#A29BFE", ES:"#FD79A8" };
+            const btnColor = res ? (CAT_COLOR[res.code?.slice(0,2)] || "#E84393") : "#E84393";
+            return (
+              <div style={{ display:"flex", gap:10, marginTop:16, width:"100%", maxWidth:320 }}>
+                <a href={cardDataUrl} download="bonsak.png" style={{ flex:1, padding:"13px", borderRadius:12, background:btnColor, color:"#fff", fontSize:14, fontWeight:700, textAlign:"center", textDecoration:"none", display:"block" }}>
+                  ⬇ 이미지 저장
+                </a>
+                <button onClick={() => setCardDataUrl(null)} style={{ padding:"13px 18px", borderRadius:12, background:"rgba(255,255,255,0.06)", border:"none", color:"rgba(255,255,255,0.5)", fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
+                  닫기
+                </button>
+              </div>
+            );
+          })()}
+        </div>
+      )}
       <div style={{ position:"fixed", top:"8%", left:"50%", transform:"translateX(-50%)", width:"100vw", height:"60vh", background:"radial-gradient(ellipse, rgba(232,67,147,0.03) 0%, transparent 55%)", pointerEvents:"none", filter:"blur(80px)" }}/>
 
       {/* 스플래시 */}
@@ -198,7 +389,7 @@ export default function Test() {
                   대부분의 사람은 자기 몸이 진짜 원하는 걸 모릅니다.<br/>사회가 정한 기준에 맞춰 욕망을 숨기고 있을 뿐.
                 </p>
                 <p style={{ fontSize:13, color:C.scene, marginTop:16, lineHeight:1.6 }}>
-                  21개의 질문이 당신을 장면 속으로 데려갑니다.<br/>
+                  19개의 질문이 당신을 장면 속으로 데려갑니다.<br/>
                   <span style={{ color:C.accent, fontWeight:600 }}>읽는 순간, 몸이 먼저 답합니다.</span>
                 </p>
               </div>
@@ -341,6 +532,35 @@ export default function Test() {
                   <h2 style={{ fontSize:34, fontWeight:900, color:"#fff", margin:"0 0 6px", textAlign:"center" }}>{res.name}</h2>
                   <p style={{ fontSize:14, color:C.scene, margin:0, fontWeight:400, textAlign:"center" }}>"{res.sub}"</p>
                 </div>
+                {/* 4축 분포 — 헤더 바로 아래 */}
+                <div style={{ background:color+"06", border:"1px solid "+color+"12", borderRadius:14, padding:"16px 18px", marginBottom:16 }}>
+                  <div style={{ fontSize:11, color:C.dim, letterSpacing:2, marginBottom:14, fontWeight:300 }}>나의 4축 분포</div>
+                  {[
+                    { label:"판타지", left:"친밀", right:"탐험", val:sc[0], max:4, lCode:"I", rCode:"E" },
+                    { label:"권력",   left:"주도", right:"맡김", val:sc[1], max:5, lCode:"D", rCode:"S" },
+                    { label:"트리거", left:"감각", right:"심리", val:sc[2], max:5, lCode:"P", rCode:"M" },
+                    { label:"감각",   left:"단일", right:"다층", val:sc[3], max:5, lCode:"N", rCode:"W" },
+                  ].map((ax, i) => {
+                    const pct = Math.round(ax.val / ax.max * 100);
+                    const myChar = res.code[i];
+                    const isLeft = myChar === ax.lCode;
+                    return (
+                      <div key={i} style={{ marginBottom: i < 3 ? 13 : 0 }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+                          <span style={{ fontSize:12, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>{ax.label}</span>
+                        </div>
+                        <div style={{ height:5, background:"rgba(255,255,255,0.06)", borderRadius:3, position:"relative", marginBottom:5 }}>
+                          <div style={{ height:"100%", borderRadius:3, background:color+"80", width:pct+"%" }}/>
+                          <div style={{ position:"absolute", top:"50%", left:pct+"%", transform:"translate(-50%,-50%)", width:12, height:12, borderRadius:"50%", background:C.bg, border:"2px solid "+color }}/>
+                        </div>
+                        <div style={{ display:"flex", justifyContent:"space-between" }}>
+                          <span style={{ fontSize:10, fontWeight:600, color: isLeft ? color : "rgba(255,255,255,0.18)" }}>{ax.left}</span>
+                          <span style={{ fontSize:10, fontWeight:600, color: !isLeft ? color : "rgba(255,255,255,0.18)" }}>{ax.right}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
                 {/* 페르소나 카드 */}
                 {res.persona && (
                   <div style={{ background:color+"08", border:"1px solid "+color+"18", borderRadius:12, padding:"12px 16px", marginBottom:16 }}>
@@ -372,36 +592,6 @@ export default function Test() {
                     </div>
                   </div>
                 )}
-                {/* 4축 분포 */}
-                <div style={{ background:color+"06", border:"1px solid "+color+"12", borderRadius:14, padding:"16px 18px", marginBottom:16 }}>
-                  <div style={{ fontSize:11, color:C.dim, letterSpacing:2, marginBottom:14, fontWeight:300 }}>나의 4축 분포</div>
-                  {[
-                    { label:"판타지", left:"친밀", right:"탐험", val:sc[0], max:4, lCode:"I", rCode:"E" },
-                    { label:"권력",   left:"주도", right:"맡김", val:sc[1], max:5, lCode:"D", rCode:"S" },
-                    { label:"트리거", left:"감각", right:"심리", val:sc[2], max:5, lCode:"P", rCode:"M" },
-                    { label:"감각",   left:"단일", right:"다층", val:sc[3], max:5, lCode:"N", rCode:"W" },
-                  ].map((ax, i) => {
-                    const pct = Math.round(ax.val / ax.max * 100);
-                    const myChar = res.code[i];
-                    const isLeft = myChar === ax.lCode;
-                    return (
-                      <div key={i} style={{ marginBottom: i < 3 ? 13 : 0 }}>
-                        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
-                          <span style={{ fontSize:12, color:"rgba(255,255,255,0.55)", fontWeight:600 }}>{ax.label}</span>
-                          <span style={{ fontSize:11, color:color, fontWeight:600 }}>{isLeft ? ax.left : ax.right}</span>
-                        </div>
-                        <div style={{ height:5, background:"rgba(255,255,255,0.06)", borderRadius:3, position:"relative", marginBottom:5 }}>
-                          <div style={{ height:"100%", borderRadius:3, background:color+"80", width:pct+"%" }}/>
-                          <div style={{ position:"absolute", top:"50%", left:pct+"%", transform:"translate(-50%,-50%)", width:12, height:12, borderRadius:"50%", background:C.bg, border:"2px solid "+color }}/>
-                        </div>
-                        <div style={{ display:"flex", justifyContent:"space-between" }}>
-                          <span style={{ fontSize:10, fontWeight:600, color: isLeft ? color : "rgba(255,255,255,0.18)" }}>{ax.left}</span>
-                          <span style={{ fontSize:10, fontWeight:600, color: !isLeft ? color : "rgba(255,255,255,0.18)" }}>{ax.right}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
                 {/* 궁합 카드 인라인 */}
                 {(() => {
                   const mc = res.code;
@@ -488,15 +678,22 @@ export default function Test() {
                     </div>
                   );
                 })()}
+                {/* 연결 고리 — 상대 테스트 유도 */}
+                <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:14, padding:"16px 18px", marginBottom:16, textAlign:"center" }}>
+                  <p style={{ fontSize:13, color:"rgba(255,255,255,0.5)", margin:"0 0 12px", lineHeight:1.6 }}>상대의 본색도 궁금해?</p>
+                  <button onClick={() => {
+                    const text = `나의 본색: ${res.code} ${res.name} ${res.emoji}\n"${res.sub}"\n\n너도 해봐 👇\nkinktype.me`;
+                    if (navigator.share) {
+                      navigator.share({ title:"본색 테스트", text, url:"https://kinktype.me" });
+                    } else {
+                      navigator.clipboard.writeText(text).then(() => alert("복사됐어요! 상대에게 보내보세요 👇"));
+                    }
+                  }} style={{ width:"100%", padding:"13px", border:"1px solid rgba(255,255,255,0.1)", borderRadius:12, background:"transparent", color:"rgba(255,255,255,0.7)", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                    🔗 상대한테 테스트 링크 보내기
+                  </button>
+                </div>
                 <button onClick={reset} style={{ padding:12, border:"none", background:"transparent", width:"100%", color:C.scene, fontSize:12, cursor:"pointer" }}>다시 테스트하기</button>
-                <button onClick={() => {
-                  const text = `나의 본색은 ${res.code} ${res.name} ${res.emoji}\nMBTI로 치면 ${res.mbti?.type || ""} 느낌\n당신의 본색은? 👇`;
-                  if (navigator.share) {
-                    navigator.share({ title:"본색 — 나의 욕망 유형", text, url:"https://kinktype.me" });
-                  } else {
-                    navigator.clipboard.writeText("https://kinktype.me").then(() => alert("링크가 복사됐어요!"));
-                  }
-                }} style={{ width:"100%", padding:"14px", border:"1px solid rgba(255,255,255,0.1)", borderRadius:14, background:"rgba(255,255,255,0.03)", color:"rgba(255,255,255,0.7)", fontSize:14, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginTop:8, fontFamily:"inherit" }}>
+                <button onClick={() => generateCard(res, cat, color, sc, MBTI_MAP[res.code])} style={{ width:"100%", padding:"16px", border:"none", borderRadius:14, background:`linear-gradient(135deg,${color},${color}BB)`, color:"#fff", fontSize:15, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginTop:8, fontFamily:"inherit" }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
                     <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
